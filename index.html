@@ -283,7 +283,8 @@ html,body{overscroll-behavior-y:contain}
      its own copy and merges with the online one, so figures match on both. */
   const FB = { apiKey: 'AIzaSyCiuS4adBbnkBUQxN4qYdlXeVOWd7AD5Es', projectId: 'kwacha-track' };
   const fb = { on: false, uid: null, token: '', refresh: '', exp: 0, failed: false, busy: false, again: false, timer: null, poll: null };
-  const fbMode = () => !!(FB.apiKey && FB.projectId) && !(window.claude && window.claude.use);
+  const ownHost = /\.github\.io$/i.test(location.hostname) || location.protocol === 'file:' || location.hostname === 'localhost';
+  const fbMode = () => !!(FB.apiKey && FB.projectId) && ownHost && !(window.claude && window.claude.use);
   const FSBASE = () => 'https://firestore.googleapis.com/v1/projects/' + FB.projectId + '/databases/(default)/documents';
   async function fbPass(phone, pin) {
     const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('kwacha-track|' + phone + '|' + pin));
