@@ -1,0 +1,1121 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Kwacha Track</title><style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column. Dark total card first, then three type tiles, 7-day bars, spending limit, ledger. */
+:root{
+  --bg:#F1F4F0; --surface:#FFFFFF; --ink:#12201A; --muted:#5B6B63; --line:#DAE2DB; --chip:#E6ECE6;
+  --accent:#0A6B4D; --accent-ink:#FFFFFF; --focus:#2A59AA; --danger:#B3261E; --warn:#9A4E0C;
+  --recv:#0A6B4D; --recv-bg:#E0F1E8; --sent:#2A59AA; --sent-bg:#E3EBF8; --wd:#9A4E0C; --wd-bg:#F7E8D8;
+  --hero-bg:#12201A; --hero-ink:#F1F4F0; --hero-muted:#A9BBB0; --bar:#0A6B4D; --bar-off:#CFDAD1;
+  --display:"Bricolage Grotesque","Inter",system-ui,sans-serif; --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1410; --surface:#151F19; --ink:#E6EEE8; --muted:#95A69B; --line:#263329; --chip:#1D2922;
+    --accent:#3FC38F; --accent-ink:#06130C; --focus:#8DB4F0; --danger:#F2867E; --warn:#F0A468;
+    --recv:#5ED4A3; --recv-bg:#12281E; --sent:#8DB4F0; --sent-bg:#17233A; --wd:#F0A468; --wd-bg:#2B2016;
+    --hero-bg:#1B2B22; --hero-ink:#E6EEE8; --hero-muted:#93A89B; --bar:#3FC38F; --bar-off:#2A3A30;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1410; --surface:#151F19; --ink:#E6EEE8; --muted:#95A69B; --line:#263329; --chip:#1D2922;
+  --accent:#3FC38F; --accent-ink:#06130C; --focus:#8DB4F0; --danger:#F2867E; --warn:#F0A468;
+  --recv:#5ED4A3; --recv-bg:#12281E; --sent:#8DB4F0; --sent-bg:#17233A; --wd:#F0A468; --wd-bg:#2B2016;
+  --hero-bg:#1B2B22; --hero-ink:#E6EEE8; --hero-muted:#93A89B; --bar:#3FC38F; --bar-off:#2A3A30;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
+  padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{font-family:var(--display);margin:0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:1.5rem} h2{font-size:1.05rem}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)} .small{font-size:.82rem}
+.tn{font-variant-numeric:tabular-nums}
+
+.top{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px 12px}
+.top > div:first-child{flex:1 1 230px;min-width:0}
+.top-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.icon-btn{position:relative;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--danger);color:#fff;font-size:.68rem;font-weight:600;display:grid;place-items:center}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:.85rem}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;background:var(--chip);border-radius:11px;padding:3px}
+.seg button{border:0;background:transparent;border-radius:9px;padding:8px 4px;font-size:.82rem;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+
+.hero{background:var(--hero-bg);color:var(--hero-ink);border-radius:16px;padding:20px 18px}
+.hero .lab{font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--hero-muted);font-weight:600}
+.hero .amt{font-family:var(--display);font-weight:700;letter-spacing:-.02em;font-size:clamp(2.1rem,10vw,2.8rem);line-height:1.1;margin-top:6px;overflow-wrap:anywhere}
+.hero .parts{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:10px;font-size:.84rem;color:var(--hero-muted)}
+.hero .parts b{color:var(--hero-ink);font-weight:600}
+
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile{border-radius:12px;padding:12px 10px;min-width:0}
+.tile .t{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.tile .v{font-family:var(--display);font-weight:700;font-size:1rem;margin-top:6px;overflow-wrap:anywhere}
+.tile .c{font-size:.72rem;margin-top:2px;opacity:.85}
+.tile.wd{background:var(--wd-bg);color:var(--wd)} .tile.recv{background:var(--recv-bg);color:var(--recv)} .tile.sent{background:var(--sent-bg);color:var(--sent)}
+
+.btn{width:100%;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:600;padding:14px 16px;font-size:.98rem}
+.btn.secondary{background:var(--chip);color:var(--ink)}
+.btn.danger{background:var(--danger);color:var(--accent-ink)}
+.row-form .btn{width:auto;flex:1}
+.stack{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.balance .bform{flex:1 1 100%;margin:0}
+.balance .bform.err{min-height:0;margin:0}
+.opt{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);cursor:pointer}
+.opt:first-child{border-top:0}
+.opt input{width:22px;height:22px;padding:0;flex:none;accent-color:var(--accent)}
+.opt .ol{flex:1;min-width:0;font-weight:500}
+.opt input:disabled ~ span{opacity:.5}
+.balance{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap}
+.balance .bv{font-family:var(--display);font-weight:700;font-size:1.4rem;margin-top:2px;overflow-wrap:anywhere}
+.balance .binfo{flex:1 1 150px;text-align:right}
+.btn[disabled]{opacity:.6;cursor:default}
+
+.bars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;align-items:end;height:112px;margin-top:12px}
+.bar{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:4px;min-width:0}
+.bar .v{font-size:.64rem;color:var(--muted);height:12px;white-space:nowrap}
+.bar .col{width:100%;max-width:28px;border-radius:6px 6px 2px 2px;background:var(--bar-off);min-height:2px}
+.bar.on .col{background:var(--bar)}
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:6px;text-align:center;font-size:.7rem;color:var(--muted)}
+
+.meter{height:8px;border-radius:4px;background:var(--chip);overflow:hidden;margin:10px 0 8px}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.meter.warn i{background:var(--warn)} .meter.over i{background:var(--danger)}
+.row-form{display:flex;gap:8px;margin-top:10px}
+.row-form input{flex:1;min-width:0}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.field label{font-size:.82rem;font-weight:600}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;width:100%}
+textarea{min-height:120px;resize:vertical}
+.err{color:var(--danger);font-size:.85rem;min-height:1.2em;margin-bottom:8px}
+.ok{color:var(--recv);font-size:.85rem}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-size:.82rem}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.list{list-style:none;margin:0;padding:0}
+.tx{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.tx:first-child{border-top:0}
+.pill{font-size:.68rem;font-weight:600;border-radius:7px;padding:4px 7px;text-transform:uppercase;letter-spacing:.05em}
+.pill.wd{background:var(--wd-bg);color:var(--wd)} .pill.recv{background:var(--recv-bg);color:var(--recv)} .pill.sent{background:var(--sent-bg);color:var(--sent)}
+.tx .who{font-weight:600;overflow-wrap:anywhere}
+.tx .meta{font-size:.78rem;color:var(--muted)}
+.tx .amt{font-weight:600;text-align:right;white-space:nowrap}
+.tx .amt.in{color:var(--recv)}
+.x{border:0;background:transparent;color:var(--muted);width:32px;height:32px;border-radius:8px;font-size:1.1rem;line-height:1}
+.note{background:var(--chip);border-radius:12px;padding:12px 14px;font-size:.84rem;display:flex;gap:12px;align-items:center;justify-content:space-between}
+.note button{border:0;background:transparent;color:var(--accent);font-weight:600;white-space:nowrap}
+.empty{padding:20px 4px;text-align:center;color:var(--muted)}
+
+.auth{margin-top:6vh;display:flex;flex-direction:column;gap:18px}
+.auth .brand{display:flex;flex-direction:column;gap:6px}
+.auth h1{font-size:2rem}
+.link{background:none;border:0;color:var(--accent);font-weight:600;padding:8px 0}
+
+.overlay{position:fixed;inset:0;background:rgba(5,10,7,.55);display:flex;align-items:flex-end;justify-content:center;z-index:20;
+  padding-top:env(safe-area-inset-top,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.sheet{width:100%;max-width:520px;max-height:92%;overflow:auto;background:var(--surface);border-radius:18px 18px 0 0;
+  padding:16px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.notif{padding:12px 0;border-top:1px solid var(--line)} .notif:first-child{border-top:0}
+.notif.unread .nt{font-weight:600}
+.notif .nt{display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+.toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);z-index:30;
+  background:var(--ink);color:var(--bg);border-radius:12px;padding:12px 16px;max-width:min(92vw,440px);font-size:.88rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+html,body{overscroll-behavior-y:contain}
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);transform:translate(-50%,-70px);z-index:25;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:.82rem;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none;opacity:0;white-space:nowrap}
+@media (prefers-reduced-motion:no-preference){ .meter i{transition:width .4s ease} .bar .col{transition:height .4s ease} }
+.credit{text-align:center;color:var(--muted);font-size:12px;letter-spacing:.02em;padding:4px 16px 28px}
+</style>
+
+<main class="wrap" id="root"></main>
+<footer class="credit">Developed by Isaac Malembeka</footer>
+
+<div class="overlay" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="sheetTitle">Add transactions</h2><button class="ghost" id="sheetClose" type="button">Close</button></div>
+    <div class="seg" style="grid-template-columns:repeat(2,minmax(0,1fr))" id="sheetTabs">
+      <button type="button" data-tab="paste" aria-pressed="true">Paste messages</button>
+      <button type="button" data-tab="manual" aria-pressed="false">Add by hand</button>
+    </div>
+    <div id="tabPaste">
+      <p class="small muted" style="margin-bottom:10px">Paste one or more mobile money messages. They are read and added as soon as you paste. A web page cannot read your SMS inbox by itself.</p>
+      <div class="field"><label for="sms">Messages</label><textarea id="sms" placeholder="You have received K250.00 from CHANDA MWALE 0966123456. Txn ID: MP2611A1B2C3. Balance K1,420.50."></textarea></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn" id="smsAdd" type="button">Add from messages</button>
+        <button class="btn secondary" id="smsDemo" type="button">Receive a sample message</button>
+      </div>
+    </div>
+    <form id="tabManual" hidden>
+      <div class="field"><label for="mType">Type</label>
+        <select id="mType"><option value="sent">Sent</option><option value="received">Received</option><option value="withdraw">Withdrawn</option></select></div>
+      <div class="field"><label for="mAmt">Amount (K)</label><input id="mAmt" inputmode="decimal" placeholder="150.00" autocomplete="off"></div>
+      <div class="field"><label for="mParty">Person, agent or business</label><input id="mParty" placeholder="Bwalya Tembo" autocomplete="off"></div>
+      <div class="field"><label for="mFee">Fee (K, optional)</label><input id="mFee" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+      <div class="field"><label for="mBal">Balance after this (K, optional)</label><input id="mBal" inputmode="decimal" placeholder="1,420.50" autocomplete="off"></div>
+      <button class="btn" type="submit">Save transaction</button>
+    </form>
+    <p id="sheetMsg" class="small" aria-live="polite"></p>
+  </div>
+</div>
+
+<div class="overlay" id="bellPanel" hidden role="dialog" aria-modal="true" aria-labelledby="bellTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="bellTitle">Notifications</h2><button class="ghost" id="bellClose" type="button">Close</button></div>
+    <div id="notifList"></div>
+    <button class="btn secondary" id="enableAlerts" type="button">Turn on phone alerts</button>
+    <p id="alertMsg" class="small muted" aria-live="polite"></p>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+<div class="ptr" id="ptr" aria-hidden="true"></div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const root = $('#root');
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  /* ---------- storage (per viewer, with in-memory fallback) ---------- */
+  const mem = {};
+  const sget = k => { try { const v = localStorage.getItem(k); if (v) return JSON.parse(v); } catch (e) {} return mem[k] ?? null; };
+  const sset = (k, v) => { mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+  /* ---------- helpers ---------- */
+  const money = n => 'K' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const TYPES = {
+    withdraw: { label: 'Withdrawn', short: 'Withdrew', cls: 'wd' },
+    received: { label: 'Received', short: 'Received', cls: 'recv' },
+    sent: { label: 'Sent', short: 'Sent', cls: 'sent' }
+  };
+  const PERIODS = { today: 'Today', week: '7 days', month: 'This month', all: 'All time' };
+  const rid = () => Math.random().toString(36).slice(2, 10);
+
+  function normPhone(raw) {
+    let d = String(raw).replace(/\D/g, '');
+    if (d.startsWith('260')) d = d.slice(3); else if (d.startsWith('0')) d = d.slice(1);
+    return /^[79]\d{8}$/.test(d) ? '260' + d : null;
+  }
+  function showPhone(p) { const n = p.slice(3); return '0' + n.slice(0, 2) + ' ' + n.slice(2, 5) + ' ' + n.slice(5); }
+
+  async function hashPin(phone, pin, salt) {
+    const s = salt + ':' + phone + ':' + pin;
+    try {
+      const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+      return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+      let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'f' + h.toString(16);
+    }
+  }
+
+  /* ---------- SMS parsing ---------- */
+  const AMT = '(?:ZMW|ZMK|\\bK)\\s?(\\d[\\d,]*(?:\\.\\d{1,2})?)';
+  const num = s => parseFloat(String(s).replace(/,/g, ''));
+  function parseSMS(raw) {
+    const t = raw.replace(/\s+/g, ' ').trim();
+    if (!t) return null;
+    const am = t.match(new RegExp(AMT, 'i'));
+    if (!am) return null;
+    let type = null;
+    if (/withdr|cash[\s-]?out/i.test(t)) type = 'withdraw';
+    else if (/receiv|deposit|cash[\s-]?in|credited|you have got/i.test(t)) type = 'received';
+    else if (/\bsent\b|\bsend\b|transferred|\bpaid\b|payment|purchase|bought|airtime|bill/i.test(t)) type = 'sent';
+    if (!type) return null;
+    const fee = t.match(new RegExp('fee[:\\s]*' + AMT, 'i'));
+    const bal = t.match(new RegExp('bal(?:ance)?[:\\s]*(?:is\\s*)?' + AMT, 'i'));
+    const ref = t.match(/\b(?:txn|tid|trans(?:action)?|ref(?:erence)?)\s*(?:id|no|#)?[:\s.]*(?=[A-Z0-9]*\d)([A-Z0-9]{6,})/i);
+    let party = '';
+    if (type === 'withdraw') {
+      const a = t.match(/agent\s+([A-Za-z0-9][A-Za-z0-9 .'-]{1,28}?)(?=\s*(?:[.,]|Fee|Txn|Trans|Ref|Bal|New)\b|\s*[.,]|$)/i);
+      if (a) party = 'Agent ' + a[1].trim();
+    }
+    if (!party) {
+      const p = t.match(/\b(?:from|to)\s+([A-Za-z][A-Za-z0-9 .'&-]{1,30}?)(?=\s+\d{9,}|\s*[.,(]|\s+(?:on|Txn|Trans|Ref|Fee|Bal|New)\b|$)/i);
+      if (p) party = p[1].trim();
+    }
+    let ts = Date.now();
+    const d = t.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if (d) {
+      const y = +d[3] < 100 ? 2000 + +d[3] : +d[3];
+      const now = new Date();
+      const dt = new Date(y, +d[2] - 1, +d[1], d[4] !== undefined ? +d[4] : now.getHours(), d[5] !== undefined ? +d[5] : now.getMinutes());
+      if (!isNaN(dt) && dt.getTime() <= Date.now() + 864e5) ts = dt.getTime();
+    }
+    return { type, amount: num(am[1]), fee: fee ? num(fee[1]) : 0, balance: bal ? num(bal[1]) : null,
+             ref: ref ? ref[1].toUpperCase() : '', party: party || 'Unknown', ts, source: 'sms' };
+  }
+  function splitMessages(text) {
+    const blocks = text.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
+    if (blocks.length > 1) return blocks;
+    const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
+    if (lines.length > 1 && lines.every(l => parseSMS(l))) return lines;
+    return blocks;
+  }
+
+  /* ---------- state ---------- */
+  const state = { confirm: null, sel: {}, phone: null, data: null, period: 'month', filter: 'all', mode: 'login', fails: 0, lockUntil: 0, tab: 'paste', balOpen: false, balAsk: false, balTimer: null };
+  const dkey = p => 'mmt:data:' + p;
+  const sdel = k => { delete mem[k]; try { localStorage.removeItem(k); } catch (e) {} };
+
+  /* ---------- online account ----------
+     The account is tied to the signed-in Claude account. Everything is saved in that person's private
+     area of the page database, so it follows them to every device that opens this page. When the
+     database is not available in a view, the app keeps working on that device alone. */
+  const cloud = { db: null, uid: null, checked: false, ready: false, profile: null, on: false, failed: false, base: null, queue: Promise.resolve(), timer: null, init: null };
+  /* ---------- automatic sync with the Android app (Firebase) ----------
+     Used only when this page is opened on its own web address, where the Claude database does not exist.
+     The phone number and PIN sign in to one online account that the Android app uses too. Each device keeps
+     its own copy and merges with the online one, so figures match on both. */
+  const FB = { apiKey: 'AIzaSyCiuS4adBbnkBUQxN4qYdlXeVOWd7AD5Es', projectId: 'kwacha-track' };
+  const fb = { on: false, uid: null, token: '', refresh: '', exp: 0, failed: false, busy: false, again: false, timer: null, poll: null };
+  const fbMode = () => !!(FB.apiKey && FB.projectId) && !(window.claude && window.claude.use);
+  const FSBASE = () => 'https://firestore.googleapis.com/v1/projects/' + FB.projectId + '/databases/(default)/documents';
+  async function fbPass(phone, pin) {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('kwacha-track|' + phone + '|' + pin));
+    return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+  }
+  /* kind is 'signUp' or 'signInWithPassword'. Resolves { ok } or { ok: false, code: OFFLINE | EXISTS | WRONG | BUSY | ERROR }. */
+  async function fbSign(kind, phone, pin) {
+    let r;
+    try {
+      r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:' + kind + '?key=' + encodeURIComponent(FB.apiKey), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: phone + '@kwachatrack.app', password: await fbPass(phone, pin), returnSecureToken: true })
+      });
+    } catch (e) { return { ok: false, code: 'OFFLINE' }; }
+    let j = {}; try { j = await r.json(); } catch (e) {}
+    if (r.ok && j.idToken) { fb.uid = j.localId; fb.token = j.idToken; fb.refresh = j.refreshToken; fb.exp = Date.now() + (Number(j.expiresIn || 3600) - 60) * 1000; return { ok: true }; }
+    const m = (j.error && j.error.message) || '';
+    if (/EMAIL_EXISTS/.test(m)) return { ok: false, code: 'EXISTS' };
+    if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(m)) return { ok: false, code: 'WRONG' };
+    if (/TOO_MANY_ATTEMPTS/.test(m)) return { ok: false, code: 'BUSY' };
+    return { ok: false, code: 'ERROR' };
+  }
+  async function fbHeaders() {
+    if (Date.now() > fb.exp) {
+      const r = await fetch('https://securetoken.googleapis.com/v1/token?key=' + encodeURIComponent(FB.apiKey), {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(fb.refresh)
+      });
+      const j = await r.json();
+      if (!r.ok || !j.id_token) throw new Error('token');
+      fb.token = j.id_token; fb.refresh = j.refresh_token || fb.refresh; fb.exp = Date.now() + (Number(j.expires_in || 3600) - 60) * 1000;
+    }
+    return { Authorization: 'Bearer ' + fb.token };
+  }
+  const fsEnc = v => v === null || v === undefined ? { nullValue: null } : typeof v === 'boolean' ? { booleanValue: v }
+    : typeof v === 'number' ? (Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v }) : { stringValue: String(v) };
+  const fsDec = f => 'stringValue' in f ? f.stringValue : 'integerValue' in f ? Number(f.integerValue) : 'doubleValue' in f ? f.doubleValue : 'booleanValue' in f ? f.booleanValue : null;
+  async function fbList() {
+    const out = new Map(); let tok = '';
+    do {
+      const r = await fetch(FSBASE() + '/users/' + fb.uid + '/txns?pageSize=300' + (tok ? '&pageToken=' + encodeURIComponent(tok) : ''), { headers: await fbHeaders() });
+      if (!r.ok) throw new Error('list ' + r.status);
+      const j = await r.json();
+      (j.documents || []).forEach(doc => {
+        const o = {}; for (const k in (doc.fields || {})) o[k] = fsDec(doc.fields[k]);
+        const id = doc.name.split('/').pop(); o.id = id; out.set(id, o);
+      });
+      tok = j.nextPageToken || '';
+    } while (tok);
+    return out;
+  }
+  /* ops: [{ id, tx }]; tx null writes a deletion marker so other devices remove the item too. */
+  async function fbCommit(ops) {
+    for (let i = 0; i < ops.length; i += 200) {
+      const writes = ops.slice(i, i + 200).map(op => {
+        const t = op.tx;
+        const o = t ? { id: op.id, type: t.type, amount: Number(t.amount), fee: Number(t.fee || 0), balance: t.balance == null ? null : Number(t.balance), party: t.party || 'Unknown', ref: t.ref || '', ts: Number(t.ts), source: t.source || '' }
+          : { id: op.id, deleted: true, ts: Date.now() };
+        const fields = {}; for (const k in o) fields[k] = fsEnc(o[k]);
+        return { update: { name: 'projects/' + FB.projectId + '/databases/(default)/documents/users/' + fb.uid + '/txns/' + op.id, fields } };
+      });
+      const r = await fetch(FSBASE() + ':commit', { method: 'POST', headers: { ...(await fbHeaders()), 'Content-Type': 'application/json' }, body: JSON.stringify({ writes }) });
+      if (!r.ok) throw new Error('commit ' + r.status);
+    }
+  }
+  const sig = t => JSON.stringify([t.type, Number(t.amount), Number(t.fee || 0), t.balance == null ? null : Number(t.balance), t.party || 'Unknown', t.ref || '', Number(t.ts), t.source || '']);
+  const cleanTx = r => ({ id: r.id, type: r.type, amount: Number(r.amount), fee: Number(r.fee || 0), balance: r.balance == null ? null : Number(r.balance), party: r.party || 'Unknown', ref: r.ref || '', ts: Number(r.ts), source: r.source || '' });
+  const validRemote = r => r && TYPES[r.type] && Number(r.amount) >= 0 && Number(r.ts) > 0;
+  /* Merge rules, per transaction: a deletion marker removes it here; something new online is added here;
+     something new here is sent online; something removed here gets a deletion marker; if only one side
+     changed a transaction, that change wins (if both did, this device wins). */
+  async function fbSync() {
+    if (!fb.on || !state.data) return;
+    if (fb.busy) { fb.again = true; return; }
+    fb.busy = true;
+    try {
+      const d = state.data; d.sync = d.sync || { ids: {}, alias: {} };
+      const S = d.sync, remote = await fbList(), ops = [], after = [];
+      const local = new Map(d.txns.filter(t => !t.sample).map(t => [t.id, t]));
+      let changed = false;
+      for (const [id, r] of remote) {
+        if (S.alias[id]) continue;
+        const lt = local.get(id);
+        if (r.deleted) { if (lt) { d.txns = d.txns.filter(t => t.id !== id); changed = true; } S.ids[id] = 'x'; continue; }
+        if (!validRemote(r)) continue;
+        const rs = sig(r);
+        if (lt) {
+          const ls = sig(lt), base = S.ids[id];
+          if (base === undefined || base === 'x') {
+            if (ls !== rs) { ops.push({ id, tx: lt }); after.push(() => { S.ids[id] = ls; }); } else S.ids[id] = ls;
+          } else if (ls !== base) {
+            if (ls !== rs) { ops.push({ id, tx: lt }); after.push(() => { S.ids[id] = ls; }); } else S.ids[id] = ls;
+          } else if (rs !== base) { Object.assign(lt, cleanTx(r)); S.ids[id] = rs; changed = true; }
+          continue;
+        }
+        if (S.ids[id] !== undefined) { ops.push({ id, tx: null }); after.push(() => { S.ids[id] = 'x'; }); continue; }
+        const dup = d.txns.some(x => r.ref ? x.ref === r.ref : (x.type === r.type && x.amount === Number(r.amount) && x.party === r.party && Math.abs(x.ts - Number(r.ts)) < 60e3));
+        if (dup) { S.alias[id] = 1; continue; }
+        d.txns.push(cleanTx(r)); S.ids[id] = rs; changed = true;
+      }
+      for (const [id, t] of local) {
+        if (remote.has(id) || S.alias[id]) continue;
+        ops.push({ id, tx: t }); after.push(() => { S.ids[id] = sig(t); });
+      }
+      if (ops.length) await fbCommit(ops);
+      after.forEach(f => f());
+      if (changed) d.txns.sort((a, b) => b.ts - a.ts);
+      sset(dkey(state.phone), d);
+      fb.failed = false; syncNote();
+      if (changed) { renderApp(); updateBadge(); }
+    } catch (e) { fb.failed = true; syncNote(); }
+    fb.busy = false;
+    if (fb.again) { fb.again = false; fbSoon(); }
+  }
+  const fbSoon = () => { clearTimeout(fb.timer); fb.timer = setTimeout(fbSync, 700); };
+  function fbStart() {
+    clearInterval(fb.poll);
+    fb.poll = setInterval(() => { if (document.visibilityState === 'visible') fbSync(); }, 20000);
+  }
+  function fbStop() { clearTimeout(fb.timer); clearInterval(fb.poll); fb.on = false; fb.uid = null; fb.token = ''; fb.refresh = ''; fb.exp = 0; fb.failed = false; }
+
+  const profRef = () => cloud.db.doc('data/users/' + cloud.uid + '/profile');
+  const txCol = () => profRef().collection('txns');
+  const setRef = () => cloud.db.doc('data/users/' + cloud.uid + '/settings');
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const settingsOf = d => ({ budget: d.budget || 0, alerts: d.alerts || {}, notifs: d.notifs || [], balanceKeep: d.balanceKeep || null });
+  const syncLabel = () => fb.on ? (fb.failed ? 'Not synced' : 'Synced') : cloud.on ? (cloud.failed ? 'Not synced' : 'Saved online') : 'This device only';
+  const authNote = () => fbMode() ? 'Your figures sync automatically with the Kwacha Track app and your other devices. Use the same phone number and PIN everywhere.'
+    : !cloud.checked ? 'Checking for your online account…'
+    : cloud.ready ? 'Your data is saved to your online account, so it is also available on your other devices.'
+    : 'No online account is available in this view, so your data stays on this device only. Open this page while signed in to Claude to use one.';
+  const busy = () => { const b = $('#authForm button[type="submit"]'); if (b) { b.disabled = true; b.textContent = 'Opening…'; } };
+  const unbusy = reg => { const b = $('#authForm button[type="submit"]'); if (b) { b.disabled = false; b.textContent = reg ? 'Create account' : 'Log in'; } };
+  function syncNote() {
+    const el = $('.top .eyebrow');
+    if (el && state.phone) el.textContent = showPhone(state.phone) + ' · ' + syncLabel();
+  }
+  const save = () => {
+    if (cloud.on) { clearTimeout(cloud.timer); cloud.timer = setTimeout(flush, 400); }
+    else { sset(dkey(state.phone), state.data); if (fb.on) fbSoon(); }
+  };
+  /* Writes only what changed since the last sync, so two devices never overwrite each other's transactions. */
+  function flush() { cloud.queue = cloud.queue.then(doFlush); return cloud.queue; }
+  async function doFlush() {
+    if (!cloud.on || !state.data) return true;
+    try {
+      const d = state.data, cur = new Map(d.txns.map(t => [t.id, JSON.stringify(t)]));
+      for (const [id, js] of cur) {
+        if (cloud.base.tx.get(id) !== js) { await txCol().doc(id).set(JSON.parse(js)); cloud.base.tx.set(id, js); }
+      }
+      for (const id of Array.from(cloud.base.tx.keys())) {
+        if (!cur.has(id)) { await txCol().doc(id).delete(); cloud.base.tx.delete(id); }
+      }
+      const sj = JSON.stringify(settingsOf(d));
+      if (sj !== cloud.base.set) { await setRef().set(JSON.parse(sj)); cloud.base.set = sj; }
+      cloud.failed = false; syncNote(); return true;
+    } catch (e) { cloud.failed = true; syncNote(); return false; }
+  }
+  /* first = merge this device's data into the online account; otherwise the online account wins. */
+  async function pull(first) {
+    const d = state.data;
+    const [ts, ss] = await Promise.all([txCol().get(), setRef().get()]);
+    const remote = new Map();
+    ts.docs.forEach(x => remote.set(x.id, clone(x.data())));
+    const rs = ss.exists ? clone(ss.data()) : null;
+    cloud.base = { tx: new Map(), set: rs ? JSON.stringify(settingsOf(rs)) : null };
+    remote.forEach((t, id) => cloud.base.tx.set(id, JSON.stringify(t)));
+    const merged = new Map(remote);
+    if (first) d.txns.forEach(t => { if (!merged.has(t.id)) merged.set(t.id, t); });
+    d.txns = Array.from(merged.values()).sort((a, b) => b.ts - a.ts);
+    if (rs) {
+      d.budget = rs.budget || 0; d.alerts = rs.alerts || {}; d.notifs = rs.notifs || [];
+      if (rs.balanceKeep) d.balanceKeep = rs.balanceKeep; else delete d.balanceKeep;
+    }
+  }
+  async function attachCloud(phone) {
+    try {
+      if (!cloud.profile) {
+        const u = (sget('mmt:users') || {})[phone];
+        const p = { phone, salt: u.salt, hash: u.hash };
+        await profRef().set(p);
+        cloud.profile = p;
+      }
+      cloud.on = true; cloud.failed = false;
+      await pull(true);
+      if (await flush()) sdel(dkey(phone));
+    } catch (e) {
+      cloud.on = false;
+      toast('Could not reach your online account. Working on this device only.');
+    }
+  }
+  async function initCloud() {
+    try {
+      if (!window.claude || !window.claude.use) return;
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      if (!db || !user) return;
+      const uid = await user.id();
+      if (!uid) return;
+      cloud.db = db; cloud.uid = uid;
+      const snap = await profRef().get();
+      cloud.profile = snap.exists ? snap.data() : null;
+      cloud.ready = true;
+      if (cloud.profile && cloud.profile.phone) {
+        const users = sget('mmt:users') || {};
+        users[cloud.profile.phone] = { salt: cloud.profile.salt, hash: cloud.profile.hash };
+        sset('mmt:users', users); sset('mmt:last', cloud.profile.phone);
+      }
+    } catch (e) { cloud.ready = false; }
+    cloud.checked = true;
+    const pinEl = $('#pin');
+    if (!state.data && (!pinEl || !pinEl.value)) renderAuth(Object.keys(sget('mmt:users') || {}).length ? 'login' : 'register');
+  }
+  async function logout() {
+    clearTimeout(state.balTimer); state.balOpen = false; state.balAsk = false;
+    if (cloud.on) { clearTimeout(cloud.timer); await flush(); cloud.on = false; cloud.base = null; }
+    if (fb.on) { clearTimeout(fb.timer); await fbSync(); fbStop(); }
+    state.data = null; state.phone = null; renderAuth('login');
+  }
+  /* A forgotten PIN cannot be recovered: this erases the account and its data, online and on this device. */
+  async function eraseAccount() {
+    const err = $('#authErr'), btn = $('#forgotYes');
+    const typed = normPhone($('#phone').value);
+    if (!typed && !(cloud.ready && cloud.profile)) { err.textContent = 'Enter your phone number first.'; return; }
+    btn.disabled = true;
+    try {
+      if (cloud.ready && cloud.profile) {
+        const ts = await txCol().get();
+        for (const x of ts.docs) await txCol().doc(x.id).delete();
+        await setRef().delete();
+        await profRef().delete();
+      }
+    } catch (e) { err.textContent = 'Could not erase the online account. Check your connection and try again.'; btn.disabled = false; return; }
+    const users = sget('mmt:users') || {};
+    [typed, cloud.profile && cloud.profile.phone].forEach(p => { if (p) { delete users[p]; sdel(dkey(p)); } });
+    sset('mmt:users', users);
+    cloud.profile = null; cloud.on = false; cloud.base = null;
+    renderAuth('register');
+    toast('Account erased. You can create a new one.');
+  }
+
+  function samples() {
+    const h = 3600e3, now = Date.now();
+    const mk = (type, amount, party, ago, fee = 0, balance = null) => ({ id: 's' + rid(), type, amount, fee, balance, party, ts: now - ago * h, sample: true, source: 'sample' });
+    return [
+      mk('received', 800, 'Chanda Mwale', 5, 0, 1420.5), mk('sent', 120, 'ZESCO prepaid', 20), mk('withdraw', 300, 'Agent 20481 Kabwata', 30, 5),
+      mk('sent', 75, 'Bwalya Tembo', 52, 1.5), mk('received', 2500, 'Salary', 4.2 * 24), mk('withdraw', 200, 'Agent 11873 Chilenje', 4.5 * 24, 4),
+      mk('sent', 60, 'MTN airtime', 5.4 * 24)
+    ];
+  }
+
+  /* ---------- totals ---------- */
+  function totals(list) {
+    const t = { received: 0, sent: 0, withdraw: 0, fees: 0, n: { received: 0, sent: 0, withdraw: 0 } };
+    for (const x of list) {
+      t.n[x.type]++;
+      if (x.type === 'received') t.received += x.amount; else { t[x.type] += x.amount; t.fees += x.fee || 0; }
+    }
+    t.used = t.sent + t.withdraw + t.fees;
+    return t;
+  }
+  function rangeStart(p) {
+    const n = new Date(), day = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+    if (p === 'today') return day.getTime();
+    if (p === 'week') return new Date(n.getFullYear(), n.getMonth(), n.getDate() - 6).getTime();
+    if (p === 'month') return new Date(n.getFullYear(), n.getMonth(), 1).getTime();
+    return 0;
+  }
+  const monthKey = ts => { const d = new Date(ts); return d.getFullYear() + '-' + (d.getMonth() + 1); };
+
+  /* ---------- notifications ---------- */
+  let toastTimer;
+  function toast(msg) {
+    const el = $('#toast'); el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 4200);
+  }
+  function pushNotif(title, body) {
+    const d = state.data;
+    d.notifs.unshift({ id: rid(), title, body, ts: Date.now(), read: false });
+    d.notifs = d.notifs.slice(0, 50);
+    toast(title + ' ' + body);
+    try { if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body }); } catch (e) {}
+  }
+  function checkBudget() {
+    const d = state.data, limit = d.budget || 0;
+    if (!limit) return;
+    const mk = monthKey(Date.now());
+    const used = totals(d.txns.filter(x => monthKey(x.ts) === mk)).used;
+    const a = (d.alerts[mk] = d.alerts[mk] || {});
+    if (used >= limit && !a.over) { a.over = true; a.warn = true; pushNotif('Limit reached.', 'You have used ' + money(used) + ' of your ' + money(limit) + ' monthly limit.'); }
+    else if (used >= limit * 0.8 && !a.warn) { a.warn = true; pushNotif('Close to your limit.', 'You have used ' + money(used) + ' of your ' + money(limit) + ' this month.'); }
+  }
+
+  /* ---------- adding transactions ---------- */
+  function addTxn(p, notify) {
+    const d = state.data;
+    const dup = d.txns.some(x => p.ref ? x.ref === p.ref : (x.type === p.type && x.amount === p.amount && x.party === p.party && Math.abs(x.ts - p.ts) < 60e3));
+    if (dup) return false;
+    d.txns.push({ id: rid(), ...p });
+    d.txns.sort((a, b) => b.ts - a.ts);
+    if (notify) {
+      const prep = p.type === 'received' ? ' from ' : ' to ';
+      const who = p.party === 'Unknown' ? '' : (p.type === 'withdraw' ? ' at ' : prep) + p.party;
+      pushNotif(TYPES[p.type].short + ' ' + money(p.amount), who.trim() ? who.trim() + '.' : '.');
+    }
+    return true;
+  }
+  function addFromText(text) {
+    let added = 0, dup = 0, bad = 0;
+    for (const c of splitMessages(text)) {
+      const p = parseSMS(c);
+      if (!p) { bad++; continue; }
+      addTxn(p, true) ? added++ : dup++;
+    }
+    if (added) { checkBudget(); save(); renderApp(); updateBadge(); }
+    return { added, dup, bad };
+  }
+  function sheetMsg(text, ok) { const m = $('#sheetMsg'); m.textContent = text; m.className = 'small ' + (ok ? 'ok' : 'muted'); }
+  function reportAdd(r) {
+    const bits = [];
+    if (r.added) bits.push('Added ' + r.added + (r.added === 1 ? ' transaction' : ' transactions'));
+    if (r.dup) bits.push(r.dup + ' already in your list');
+    if (r.bad) bits.push(r.bad + (r.bad === 1 ? ' message was' : ' messages were') + ' not recognised as a payment');
+    sheetMsg(bits.join('. ') + '.', r.added > 0);
+  }
+
+  const DEMOS = [
+    () => 'You have received K' + (50 + Math.floor(Math.random() * 450)) + '.00 from CHANDA MWALE 0966123456. Txn ID: MP' + rid().toUpperCase() + '. Balance K1,420.50.',
+    () => 'You have sent K' + (20 + Math.floor(Math.random() * 180)) + '.00 to BWALYA TEMBO 0977654321. Fee K1.50. Txn ID: MP' + rid().toUpperCase() + '. Balance K980.00.',
+    () => 'Cash out of K' + (100 + Math.floor(Math.random() * 400)) + '.00 at Agent 20481 Kabwata. Fee K5.00. Txn ID: MP' + rid().toUpperCase() + '. Balance K640.00.'
+  ];
+
+  /* ---------- auth ---------- */
+  function renderAuth(mode) {
+    state.mode = mode;
+    const reg = mode === 'register';
+    root.innerHTML = `
+      <section class="auth">
+        <div class="brand">
+          <p class="eyebrow">Mobile money tracker</p>
+          <h1>Kwacha Track</h1>
+          <p class="muted">See what you withdrew, received and sent, and how much you have used in total.</p>
+        </div>
+        <form class="card" id="authForm" novalidate>
+          <h2 style="margin-bottom:14px">${reg ? 'Create your account' : 'Log in'}</h2>
+          <div class="field"><label for="phone">Phone number</label>
+            <input id="phone" inputmode="tel" autocomplete="off" placeholder="097 712 3456" value=""></div>
+          <div class="field"><label for="pin">${reg ? 'Choose a 4-digit PIN' : 'PIN'}</label>
+            <input id="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="${reg ? 'new-password' : 'current-password'}" placeholder="••••"></div>
+          ${reg ? `<div class="field"><label for="pin2">Repeat PIN</label>
+            <input id="pin2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••"></div>
+            <p class="small muted" style="margin-bottom:12px">Use a new PIN for this app. Do not reuse your mobile money PIN.</p>` : ''}
+          <p class="err" id="authErr" role="alert"></p>
+          <button class="btn" type="submit">${reg ? 'Create account' : 'Log in'}</button>
+        </form>
+        <p class="small muted" id="authNote">${esc(authNote())}</p>
+        <button class="link" id="authSwitch" type="button">${reg ? 'I already have an account' : 'New here? Create an account'}</button>
+        ${reg ? '' : `<button class="link" id="authForgot" type="button">Forgot PIN?</button>
+        <div class="card" id="forgotBox" hidden>
+          <p><b>Erase this account and start over?</b></p>
+          <p class="small muted" style="margin-top:6px">A forgotten PIN cannot be recovered. This deletes the account and every saved transaction from ${cloud.ready && cloud.profile ? 'your online account and this device' : 'this device'}.${fbMode() ? ' Your online account is not erased, so you can still sign in to it with the right PIN.' : ''} This cannot be undone.</p>
+          <div class="row-form"><button class="btn danger" id="forgotYes" type="button">Erase and start over</button><button class="btn secondary" id="forgotNo" type="button">Cancel</button></div>
+        </div>`}
+      </section>`;
+    $('#authSwitch').onclick = () => renderAuth(reg ? 'login' : 'register');
+    $('#authForm').onsubmit = onAuth;
+    if (!reg) {
+      $('#authForgot').onclick = () => { $('#forgotBox').hidden = false; };
+      $('#forgotNo').onclick = () => { $('#forgotBox').hidden = true; };
+      $('#forgotYes').onclick = eraseAccount;
+    }
+  }
+
+  async function onAuth(e) {
+    e.preventDefault();
+    const err = $('#authErr'), reg = state.mode === 'register';
+    const phone = normPhone($('#phone').value), pin = $('#pin').value;
+    if (Date.now() < state.lockUntil) { err.textContent = 'Too many attempts. Try again in ' + Math.ceil((state.lockUntil - Date.now()) / 1000) + ' seconds.'; return; }
+    if (!phone) { err.textContent = 'Enter a valid Zambian number, for example 097 712 3456.'; return; }
+    if (!/^\d{4}$/.test(pin)) { err.textContent = 'The PIN must be exactly 4 digits.'; return; }
+    await cloud.init;
+    const users = sget('mmt:users') || {};
+    if (reg) {
+      if (pin !== $('#pin2').value) { err.textContent = 'The two PINs do not match.'; return; }
+      if (cloud.profile) { err.textContent = 'Your Claude account already has an online account for ' + showPhone(cloud.profile.phone) + '. Log in instead.'; return; }
+      if (users[phone]) { err.textContent = 'This number already has an account. Log in instead.'; return; }
+      let fresh = true;
+      if (fbMode()) {
+        busy();
+        let r = await fbSign('signUp', phone, pin);
+        if (!r.ok && r.code === 'EXISTS') {
+          r = await fbSign('signInWithPassword', phone, pin);
+          if (!r.ok && r.code === 'WRONG') { unbusy(reg); err.textContent = 'This number already has an online account with a different PIN. Log in with that PIN instead.'; return; }
+          fresh = false; // joining the account that already exists: its figures arrive from online
+        }
+        if (!r.ok) { unbusy(reg); err.textContent = r.code === 'OFFLINE' ? 'No internet connection. Connect to create your online account.' : r.code === 'BUSY' ? 'Too many attempts. Try again in a few minutes.' : 'Could not create your online account. Try again.'; return; }
+        fb.on = true;
+      }
+      const salt = rid() + rid();
+      users[phone] = { salt, hash: await hashPin(phone, pin, salt) };
+      sset('mmt:users', users);
+      busy(); await start(phone, fresh);
+    } else {
+      if (fbMode()) {
+        busy();
+        const r = await fbSign('signInWithPassword', phone, pin);
+        if (r.ok) {
+          state.fails = 0;
+          const salt = (users[phone] && users[phone].salt) || rid() + rid();
+          users[phone] = { salt, hash: await hashPin(phone, pin, salt) };
+          sset('mmt:users', users);
+          fb.on = true; await start(phone, false); return;
+        }
+        unbusy(reg);
+        if (r.code === 'BUSY') { err.textContent = 'Too many attempts. Try again in a few minutes.'; return; }
+        if (r.code === 'ERROR') { err.textContent = 'Could not log in. Try again.'; return; }
+        if (r.code === 'WRONG') {
+          const u0 = users[phone];
+          state.fails++;
+          if (state.fails >= 5) { state.fails = 0; state.lockUntil = Date.now() + 30000; err.textContent = 'Too many wrong PINs. Locked for 30 seconds.'; }
+          else if (u0 && await hashPin(phone, pin, u0.salt) === u0.hash) err.textContent = 'Your PIN was changed on another device. Use the new PIN.';
+          else err.textContent = 'Wrong PIN, or no online account for this number. ' + (5 - state.fails) + ' attempts left.';
+          return;
+        }
+        if (!users[phone]) { err.textContent = 'No internet connection, and this number has not been used on this device before.'; return; }
+        // No connection but this device knows the account: carry on offline with the saved PIN check below.
+      }
+      const u = users[phone];
+      if (!u) { err.textContent = 'No account for this number on this device. Create one first.'; return; }
+      if (await hashPin(phone, pin, u.salt) !== u.hash) {
+        state.fails++;
+        if (state.fails >= 5) { state.fails = 0; state.lockUntil = Date.now() + 30000; err.textContent = 'Too many wrong PINs. Locked for 30 seconds.'; }
+        else err.textContent = 'Wrong PIN. ' + (5 - state.fails) + ' attempts left.';
+        return;
+      }
+      state.fails = 0;
+      if (cloud.profile && cloud.profile.phone !== phone) { err.textContent = 'Your online account is linked to ' + showPhone(cloud.profile.phone) + '. Log in with that number.'; return; }
+      busy(); await start(phone, false);
+    }
+  }
+
+  async function start(phone, fresh) {
+    state.phone = phone; sset('mmt:last', phone);
+    let d = sget(dkey(phone));
+    if (!d) { d = { txns: fresh ? samples() : [], notifs: [], budget: 0, alerts: {} }; }
+    d.alerts = d.alerts || {}; d.notifs = d.notifs || [];
+    state.data = d;
+    if (cloud.ready) await attachCloud(phone);
+    if (fb.on) { await fbSync(); fbStart(); }
+    save(); renderApp();
+    if (fresh) { pushNotif('Welcome.', 'Sample transactions are shown so you can see how it works.'); save(); updateBadge(); }
+  }
+
+  /* ---------- main view ---------- */
+  const unread = () => state.data ? state.data.notifs.filter(n => !n.read).length : 0;
+  function updateBadge() {
+    const b = $('#bellBadge'); if (!b) return;
+    const n = unread(); b.hidden = n === 0; b.textContent = n;
+  }
+  function dayBars() {
+    const n = new Date(), out = [];
+    for (let i = 6; i >= 0; i--) {
+      const s = new Date(n.getFullYear(), n.getMonth(), n.getDate() - i).getTime();
+      out.push({ day: new Date(s).toLocaleDateString('en-GB', { weekday: 'short' }), used: totals(state.data.txns.filter(x => x.ts >= s && x.ts < s + 864e5)).used });
+    }
+    return out;
+  }
+  function fmtDate(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderApp() { renderMain(); appendClearCard(); appendSyncCard(); }
+
+  /* ---------- match figures with the Android app (copy and paste) ---------- */
+  function backupText() {
+    const list = state.data.txns.filter(x => !x.sample).map(x => ({
+      id: x.id, type: x.type, amount: x.amount, fee: x.fee || 0, balance: x.balance == null ? null : x.balance,
+      party: x.party || 'Unknown', ref: x.ref || '', ts: x.ts, source: x.source || ''
+    }));
+    return 'KWACHATRACK1 ' + JSON.stringify(list);
+  }
+  function mergeBackup(text) {
+    const t = (text || '').trim();
+    if (t.indexOf('KWACHATRACK1') !== 0) return null;
+    let arr; try { arr = JSON.parse(t.slice(12)); } catch (e) { return null; }
+    if (!Array.isArray(arr)) return null;
+    let added = 0;
+    for (const x of arr) {
+      if (!x || !TYPES[x.type] || !(Number(x.amount) >= 0) || !isFinite(Number(x.ts)) || Number(x.ts) <= 0) continue;
+      if (x.id && state.data.txns.some(y => y.id === x.id)) continue;
+      const bal = x.balance == null || !isFinite(Number(x.balance)) ? null : Number(x.balance);
+      const p = { type: x.type, amount: Number(x.amount), fee: Number(x.fee) > 0 ? Number(x.fee) : 0, balance: bal,
+        party: String(x.party || 'Unknown').slice(0, 60), ts: Number(x.ts), source: String(x.source || 'app').slice(0, 20) };
+      if (x.ref) p.ref = String(x.ref).slice(0, 40);
+      if (x.id) p.id = String(x.id).slice(0, 40);
+      if (addTxn(p, false)) added++;
+    }
+    return added;
+  }
+  function appendSyncCard() {
+    if (fb.on) return; // already matching automatically
+    root.insertAdjacentHTML('beforeend', `<section class="card" aria-label="Match with the Android app"><h2>Match with the Android app</h2>
+      <p class="small muted" style="margin:6px 0 12px">Tap Copy here, open the app, and tap Paste and merge on its Match card. Do the same the other way round. Each side adds what the other has, so both show the same figures. Deleted items are not removed on the other side.</p>
+      <div class="stack"><button class="btn secondary" id="syncCopy" type="button">Copy my figures</button>
+      <div class="field"><label for="syncBox">Figures copied from the app</label><textarea id="syncBox" style="min-height:70px" placeholder="Paste here"></textarea></div>
+      <button class="btn" id="syncMerge" type="button">Merge pasted figures</button></div></section>`);
+  }
+  function renderMain() {
+    const d = state.data, start0 = rangeStart(state.period);
+    const inPeriod = d.txns.filter(x => x.ts >= start0);
+    const t = totals(inPeriod);
+    const shown = state.filter === 'all' ? inPeriod : inPeriod.filter(x => x.type === state.filter);
+    const mk = monthKey(Date.now());
+    const monthUsed = totals(d.txns.filter(x => monthKey(x.ts) === mk)).used;
+    const limit = d.budget || 0, pct = limit ? Math.min(100, monthUsed / limit * 100) : 0;
+    const mcls = limit && monthUsed >= limit ? 'over' : (limit && monthUsed >= limit * 0.8 ? 'warn' : '');
+    const bars = dayBars(), max = Math.max(...bars.map(b => b.used), 1);
+    const hasSample = d.txns.some(x => x.sample);
+    const wb = d.txns.find(x => x.balance !== null && x.balance !== undefined), kb = d.balanceKeep;
+    const cur = wb && (!kb || wb.ts >= kb.ts) ? wb : (kb || null);
+
+    root.innerHTML = `
+      <header class="top">
+        <div><p class="eyebrow">${esc(showPhone(state.phone) + ' · ' + syncLabel())}</p><h1>Kwacha Track</h1></div>
+        <div class="top-actions">
+          <button class="icon-btn" id="bell" type="button" aria-label="Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <span class="badge" id="bellBadge" hidden></span>
+          </button>
+          <button class="ghost" id="refresh" type="button">Refresh</button>
+          <button class="ghost" id="logout" type="button">Log out</button>
+        </div>
+      </header>
+
+      ${hasSample ? `<div class="note"><span>These are sample transactions, not your own.</span><button id="clearSamples" type="button">Clear samples</button></div>` : ''}
+
+      <div class="seg" role="group" aria-label="Time period">
+        ${Object.entries(PERIODS).map(([k, v]) => `<button type="button" data-period="${k}" aria-pressed="${state.period === k}">${v}</button>`).join('')}
+      </div>
+
+      <section class="hero" aria-label="Total money used">
+        <p class="lab">Total money used · ${PERIODS[state.period]}</p>
+        <p class="amt tn">${money(t.used)}</p>
+        <p class="parts tn"><span>Sent <b>${money(t.sent)}</b></span><span>Withdrawn <b>${money(t.withdraw)}</b></span><span>Fees <b>${money(t.fees)}</b></span></p>
+      </section>
+
+      <section class="balance" id="balance" aria-label="Current balance">${balanceHTML()}</section>
+
+      <section class="tiles" aria-label="Totals by type">
+        <div class="tile wd"><p class="t">Withdrawn</p><p class="v tn">${money(t.withdraw)}</p><p class="c">${t.n.withdraw} ${t.n.withdraw === 1 ? 'time' : 'times'}</p></div>
+        <div class="tile recv"><p class="t">Received</p><p class="v tn">${money(t.received)}</p><p class="c">${t.n.received} ${t.n.received === 1 ? 'payment' : 'payments'}</p></div>
+        <div class="tile sent"><p class="t">Sent</p><p class="v tn">${money(t.sent)}</p><p class="c">${t.n.sent} ${t.n.sent === 1 ? 'payment' : 'payments'}</p></div>
+      </section>
+
+      <button class="btn" id="openAdd" type="button">Add messages or a transaction</button>
+
+      <section class="card" aria-label="Money used in the last 7 days">
+        <h2>Money used, last 7 days</h2>
+        <div class="bars" role="img" aria-label="Daily money used over the last 7 days">
+          ${bars.map(b => `<div class="bar ${b.used > 0 ? 'on' : ''}"><span class="v tn">${b.used > 0 ? Math.round(b.used) : ''}</span><div class="col" style="height:${Math.max(b.used / max * 80, b.used > 0 ? 4 : 2)}px"></div></div>`).join('')}
+        </div>
+        <div class="days">${bars.map(b => `<span>${esc(b.day)}</span>`).join('')}</div>
+      </section>
+
+      <section class="card" aria-label="Monthly spending limit">
+        <h2>Monthly limit</h2>
+        ${limit ? `<div class="meter ${mcls}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="width:${pct}%"></i></div>
+          <p class="small tn">${money(monthUsed)} used of ${money(limit)} this month</p>`
+          : `<p class="small muted" style="margin-top:6px">Set a limit and you get an alert at 80% and when you pass it.</p>`}
+        <form class="row-form" id="budgetForm">
+          <input id="budget" inputmode="decimal" placeholder="${limit ? 'New limit in K' : 'Limit in K, e.g. 3000'}" aria-label="Monthly limit in kwacha" autocomplete="off">
+          <button class="ghost" type="submit">Save</button>
+        </form>
+      </section>
+
+      <section class="card" aria-label="Transactions">
+        <h2>Transactions</h2>
+        <div class="chips" role="group" aria-label="Filter by type">
+          ${[['all', 'All'], ['withdraw', 'Withdrawn'], ['received', 'Received'], ['sent', 'Sent']].map(([k, v]) => `<button class="chip" type="button" data-filter="${k}" aria-pressed="${state.filter === k}">${v}</button>`).join('')}
+        </div>
+        ${shown.length ? `<ul class="list">${shown.map(x => `
+          <li class="tx">
+            <span class="pill ${TYPES[x.type].cls}">${TYPES[x.type].label}</span>
+            <div style="min-width:0"><p class="who">${esc(x.party)}</p><p class="meta">${fmtDate(x.ts)}${x.fee ? ' · fee ' + money(x.fee) : ''}${x.sample ? ' · sample' : ''}</p></div>
+            <p class="amt tn ${x.type === 'received' ? 'in' : ''}">${x.type === 'received' ? '+' : '−'}${money(x.amount)}</p>
+            <button class="x" type="button" data-del="${x.id}" aria-label="Remove this transaction">×</button>
+          </li>`).join('')}</ul>`
+          : `<p class="empty">No transactions here yet. Tap “Add messages or a transaction” to start.</p>`}
+      </section>`;
+    updateBadge();
+  }
+
+  /* ---------- clearing ---------- */
+  function keepBalance() {
+    const d = state.data;
+    const w = d.txns.find(x => !x.sample && x.balance !== null && x.balance !== undefined);
+    if (w && (!d.balanceKeep || w.ts >= d.balanceKeep.ts)) d.balanceKeep = { balance: w.balance, ts: w.ts };
+  }
+  const inList = x => x.ts >= rangeStart(state.period) && (state.filter === 'all' || x.type === state.filter);
+  function clearOptions() {
+    const d = state.data;
+    const shownN = d.txns.filter(inList).length, sampleN = d.txns.filter(x => x.sample).length;
+    const hasBal = d.txns.some(x => x.balance !== null && x.balance !== undefined) || !!d.balanceKeep;
+    const raw = [
+      ['samples', 'Sample transactions', sampleN + '', sampleN === 0],
+      ['shown', 'Transactions listed above', shownN + '', shownN === 0],
+      ['all', 'All transactions', d.txns.length + '', d.txns.length === 0],
+      ['balance', 'Saved balance', hasBal ? 'saved' : 'none', !hasBal],
+      ['notifs', 'Notifications', d.notifs.length + '', d.notifs.length === 0],
+      ['limit', 'Monthly limit', d.budget ? money(d.budget) : 'not set', !d.budget]
+    ];
+    return raw.map(([id, label, detail, off]) => ({ id, label, detail, off, on: !off && !!state.sel[id] }));
+  }
+  function doClear() {
+    const d = state.data, s = {}, before = d.txns.length;
+    clearOptions().forEach(o => { s[o.id] = o.on; });
+    if (!s.balance) keepBalance();
+    if (s.all) d.txns = [];
+    else {
+      if (s.shown) d.txns = d.txns.filter(x => !inList(x));
+      if (s.samples) d.txns = d.txns.filter(x => !x.sample);
+    }
+    if (s.balance) { d.txns.forEach(x => { x.balance = null; }); d.balanceKeep = null; }
+    if (s.notifs) d.notifs = [];
+    if (s.limit) d.budget = 0;
+    d.alerts = {}; state.sel = {}; state.confirm = null; save(); renderApp(); updateBadge();
+    const done = [];
+    if (before !== d.txns.length) done.push((before - d.txns.length) + ' transactions');
+    if (s.balance) done.push('balance');
+    if (s.notifs) done.push('notifications');
+    if (s.limit) done.push('monthly limit');
+    toast('Cleared ' + (done.join(', ') || 'nothing') + '.');
+  }
+  function appendClearCard() {
+    const opts = clearOptions(), picked = opts.filter(o => o.on);
+    const body = state.confirm === 'go'
+      ? `<p style="margin-top:12px" role="alert"><b>Clear ${esc(picked.map(o => o.label.toLowerCase()).join(', '))}?</b></p><p class="small muted">This cannot be undone.</p>
+         <div class="row-form"><button class="btn danger" type="button" data-clear="yes">Yes, clear</button><button class="btn secondary" type="button" data-clear="no">Cancel</button></div>`
+      : `<div style="margin-top:8px">${opts.map(o => `<label class="opt"><input type="checkbox" data-sel="${o.id}" ${o.on ? 'checked' : ''} ${o.off ? 'disabled' : ''}><span class="ol">${o.label}</span><span class="small muted">${esc(o.detail)}</span></label>`).join('')}</div>
+         <div class="stack"><button class="btn danger" id="clearGo" type="button" data-ask="go" ${picked.length ? '' : 'disabled'}>Clear ticked items</button>
+         <button class="link" type="button" data-tickall="1">Tick everything</button></div>`;
+    root.insertAdjacentHTML('beforeend', `<section class="card" aria-label="Clear data"><h2>Clear data</h2><p class="small muted" style="margin-top:6px">Tick what you want cleared. Your saved balance stays unless you tick it.</p>${body}</section>`);
+  }
+  root.addEventListener('change', e => {
+    const c = e.target.closest('input[data-sel]'); if (!c || !state.data) return;
+    state.sel[c.dataset.sel] = c.checked;
+    const go = $('#clearGo'); if (go) go.disabled = !clearOptions().some(o => o.on);
+  });
+
+  /* ---------- balance lock: hidden until the PIN is entered, hides again after 30 seconds ---------- */
+  function curBalance() {
+    const d = state.data;
+    const wb = d.txns.find(x => x.balance !== null && x.balance !== undefined), kb = d.balanceKeep;
+    return wb && (!kb || wb.ts >= kb.ts) ? wb : (kb || null);
+  }
+  function balanceHTML() {
+    if (!state.balOpen) {
+      return `<div><p class="eyebrow">Balance</p><p class="bv tn" aria-label="Hidden">K ••••••</p></div>
+        <div class="binfo">${state.balAsk ? '' : '<button class="ghost" id="balShow" type="button">Show balance</button>'}</div>
+        ${state.balAsk
+          ? `<form class="bform row-form" id="balForm"><input id="balPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Enter your PIN" aria-label="PIN"><button class="ghost" type="submit">Show</button><button class="ghost" id="balCancel" type="button">Cancel</button></form><p class="bform err" id="balErr" role="alert"></p>`
+          : '<p class="small muted bform">Locked. Enter your PIN to see it.</p>'}`;
+    }
+    const cur = curBalance();
+    return `<div><p class="eyebrow">Balance</p><p class="bv tn">${cur ? money(cur.balance) : 'Not known yet'}</p></div>
+      <div class="binfo"><button class="ghost" id="balHide" type="button">Hide balance</button></div>
+      <p class="small muted bform">${cur ? 'As of ' + fmtDate(cur.ts) + (cur.sample ? ' · sample' : '') + '. Hides again in 30 seconds.' : 'Taken from the balance in your messages, or enter it when you add by hand.'}</p>`;
+  }
+  function paintBalance() { const el = $('#balance'); if (el) el.innerHTML = balanceHTML(); }
+  function hideBalance() { clearTimeout(state.balTimer); state.balOpen = false; state.balAsk = false; paintBalance(); }
+
+  /* ---------- events ---------- */
+  root.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || !state.data) return;
+    if (b.dataset.period) { state.period = b.dataset.period; state.confirm = null; renderApp(); }
+    else if (b.dataset.filter) { state.filter = b.dataset.filter; state.confirm = null; renderApp(); }
+    else if (b.dataset.del) { state.data.txns = state.data.txns.filter(x => x.id !== b.dataset.del); save(); renderApp(); }
+    else if (b.id === 'openAdd') openSheet();
+    else if (b.id === 'bell') openBell();
+    else if (b.id === 'balShow') { state.balAsk = true; paintBalance(); const p = $('#balPin'); if (p) p.focus(); }
+    else if (b.id === 'balCancel') { state.balAsk = false; paintBalance(); }
+    else if (b.id === 'balHide') hideBalance();
+    else if (b.id === 'refresh') doRefresh();
+    else if (b.id === 'syncCopy') {
+      const txt = backupText(), n = state.data.txns.filter(x => !x.sample).length;
+      const fallback = () => { const bx = $('#syncBox'); if (bx) { bx.value = txt; bx.focus(); bx.select(); } toast('Select the text in the box and copy it.'); };
+      try { navigator.clipboard.writeText(txt).then(() => toast('Copied ' + n + ' transactions. Paste them in the app.'), fallback); } catch (e) { fallback(); }
+    }
+    else if (b.id === 'syncMerge') {
+      const bx = $('#syncBox'), r = mergeBackup(bx ? bx.value : '');
+      if (r === null) toast('That does not look like figures copied from Kwacha Track.');
+      else if (r === 0) toast('Already up to date. Nothing new to add.');
+      else { checkBudget(); save(); renderApp(); updateBadge(); toast('Added ' + r + ' new transactions.'); }
+    }
+    else if (b.id === 'logout') logout();
+    else if (b.id === 'clearSamples') { state.data.txns = state.data.txns.filter(x => !x.sample); save(); renderApp(); }
+    else if (b.dataset.ask) { state.confirm = b.dataset.ask; renderApp(); }
+    else if (b.dataset.clear === 'no') { state.confirm = null; renderApp(); }
+    else if (b.dataset.tickall) { root.querySelectorAll('input[data-sel]:not(:disabled)').forEach(i => { state.sel[i.dataset.sel] = true; }); renderApp(); }
+    else if (b.dataset.clear === 'yes') doClear();
+  });
+  root.addEventListener('submit', async e => {
+    if (e.target.id === 'balForm') {
+      e.preventDefault();
+      const err = $('#balErr'), pin = $('#balPin').value;
+      if (Date.now() < state.lockUntil) { err.textContent = 'Too many attempts. Try again in ' + Math.ceil((state.lockUntil - Date.now()) / 1000) + ' seconds.'; return; }
+      const u = (sget('mmt:users') || {})[state.phone];
+      if (!u || (await hashPin(state.phone, pin, u.salt)) !== u.hash) {
+        state.fails++;
+        if (state.fails >= 5) { state.fails = 0; state.lockUntil = Date.now() + 30000; err.textContent = 'Too many wrong PINs. Locked for 30 seconds.'; }
+        else err.textContent = 'Wrong PIN. ' + (5 - state.fails) + ' attempts left.';
+        return;
+      }
+      state.fails = 0; state.balOpen = true; state.balAsk = false;
+      clearTimeout(state.balTimer); state.balTimer = setTimeout(hideBalance, 30000);
+      paintBalance();
+      return;
+    }
+    if (e.target.id !== 'budgetForm') return;
+    e.preventDefault();
+    const v = num($('#budget').value);
+    if (!(v > 0)) { toast('Enter a limit above zero.'); return; }
+    state.data.budget = v; state.data.alerts = {}; checkBudget(); save(); renderApp();
+  });
+
+  const sheet = $('#sheet'), bell = $('#bellPanel');
+  function openSheet() { sheet.hidden = false; sheetMsg('', false); setTab(state.tab); }
+  function setTab(tab) {
+    state.tab = tab;
+    $('#tabPaste').hidden = tab !== 'paste'; $('#tabManual').hidden = tab !== 'manual';
+    sheet.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === tab)));
+  }
+  $('#sheetTabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) { setTab(b.dataset.tab); sheetMsg('', false); } });
+  $('#sheetClose').onclick = () => { sheet.hidden = true; };
+  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.hidden = true; });
+
+  function runPaste() {
+    const ta = $('#sms'), text = ta.value.trim();
+    if (!text) { sheetMsg('Paste at least one message first.', false); return; }
+    const r = addFromText(text); reportAdd(r);
+    if (r.added || r.dup) ta.value = '';
+  }
+  $('#smsAdd').onclick = runPaste;
+  $('#sms').addEventListener('paste', () => setTimeout(runPaste, 0));
+  $('#smsDemo').onclick = () => { const r = addFromText(DEMOS[Math.floor(Math.random() * DEMOS.length)]()); reportAdd(r); };
+  $('#tabManual').onsubmit = e => {
+    e.preventDefault();
+    const amount = num($('#mAmt').value), fee = $('#mFee').value ? num($('#mFee').value) : 0;
+    if (!(amount > 0)) { sheetMsg('Enter an amount above zero.', false); return; }
+    addTxn({ type: $('#mType').value, amount, fee: isNaN(fee) ? 0 : fee, party: $('#mParty').value.trim() || 'Unknown', balance: (() => { const bv = num($('#mBal').value); return isNaN(bv) ? null : bv; })(), ts: Date.now(), ref: '', source: 'manual' }, true);
+    checkBudget(); save(); renderApp(); updateBadge();
+    $('#mAmt').value = ''; $('#mParty').value = ''; $('#mFee').value = ''; $('#mBal').value = '';
+    sheetMsg('Saved.', true);
+  };
+
+  function openBell() {
+    const list = state.data.notifs;
+    $('#notifList').innerHTML = list.length
+      ? list.map(n => `<div class="notif ${n.read ? '' : 'unread'}"><p class="nt">${n.read ? '' : '<span class="dot"></span>'}${esc(n.title)}</p><p class="small muted">${esc(n.body)}</p><p class="small muted">${fmtDate(n.ts)}</p></div>`).join('')
+      : '<p class="empty">Alerts appear here when a transaction is added or you near your limit.</p>';
+    bell.hidden = false;
+    list.forEach(n => { n.read = true; }); save(); updateBadge();
+  }
+  $('#bellClose').onclick = () => { bell.hidden = true; };
+  bell.addEventListener('click', e => { if (e.target === bell) bell.hidden = true; });
+  $('#enableAlerts').onclick = async () => {
+    const m = $('#alertMsg');
+    try {
+      if (!('Notification' in window)) throw new Error('unsupported');
+      const p = await Notification.requestPermission();
+      m.textContent = p === 'granted' ? 'Phone alerts are on.' : 'Phone alerts were not allowed. In-app alerts still work.';
+    } catch (e) { m.textContent = 'Phone alerts are not available in this view. In-app alerts still work.'; }
+  };
+
+  /* ---------- refresh: button on laptops, pull down on touch screens ---------- */
+  async function doRefresh() {
+    if (!state.data) return;
+    hideBalance(); // refreshing always locks the balance again, even inside the 30 seconds
+    if (fb.on) {
+      clearTimeout(fb.timer);
+      await fbSync();
+      renderApp(); toast(fb.failed ? 'Could not sync. Check your connection, then pull down to try again.' : 'Up to date.');
+      return;
+    }
+    if (cloud.on) {
+      clearTimeout(cloud.timer);
+      if (!(await flush())) { toast('Could not sync. Check your connection, then pull down to try again.'); return; }
+      try { await pull(false); } catch (e) { toast('Could not reach your online account.'); return; }
+      renderApp(); toast('Up to date.');
+      return;
+    }
+    const fresh = sget(dkey(state.phone));
+    if (fresh) { fresh.alerts = fresh.alerts || {}; fresh.notifs = fresh.notifs || []; state.data = fresh; }
+    renderApp();
+    toast('Refreshed.');
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && state.balOpen) hideBalance();
+    if (document.visibilityState === 'hidden' && cloud.on) { clearTimeout(cloud.timer); flush(); }
+    if (document.visibilityState === 'visible' && fb.on) fbSync();
+  });
+  (() => {
+    const ptr = $('#ptr');
+    let y0 = null, dy = 0;
+    const overlayOpen = () => !$('#sheet').hidden || !$('#bellPanel').hidden;
+    const atTop = () => (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+    const hide = () => { ptr.style.opacity = 0; ptr.style.transform = 'translate(-50%,-70px)'; };
+    addEventListener('touchstart', e => {
+      y0 = (state.data && !overlayOpen() && atTop() && e.touches.length === 1) ? e.touches[0].clientY : null;
+      dy = 0;
+    }, { passive: true });
+    addEventListener('touchmove', e => {
+      if (y0 === null) return;
+      dy = e.touches[0].clientY - y0;
+      if (dy <= 0) { hide(); return; }
+      const p = Math.min(dy, 120);
+      ptr.textContent = dy > 70 ? 'Release to refresh' : 'Pull down to refresh';
+      ptr.style.opacity = Math.min(1, p / 60);
+      ptr.style.transform = 'translate(-50%,' + (p * 0.6 - 40) + 'px)';
+    }, { passive: true });
+    addEventListener('touchend', () => {
+      if (y0 === null) return;
+      const go = dy > 70;
+      y0 = null; dy = 0;
+      if (go) { ptr.textContent = 'Refreshing…'; setTimeout(() => { hide(); doRefresh(); }, 300); }
+      else hide();
+    }, { passive: true });
+  })();
+
+  renderAuth(Object.keys(sget('mmt:users') || {}).length ? 'login' : 'register');
+  cloud.init = initCloud();
+})();
+</script>
+
+</body></html>
