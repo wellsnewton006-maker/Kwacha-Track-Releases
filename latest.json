@@ -1,1 +1,1 @@
-{"versionCode":18,"versionName":"1.0","sha256":"8b82adf937212bb6d184e46431c64f96399718a0100d79608d67cd8d9cfbdb50","notes":"Automatic sync: the app and the web page now show the same figures once you sign in with the same phone number and PIN."}
+{"versionCode":19,"versionName":"1.0","sha256":"d27946102d5010f5c5b76c718e055ab2a1189c92cc7665af574bb5c6a9a29add","notes":"The app now also reads MTN and Zamtel messages, and importing shows a loading symbol."}

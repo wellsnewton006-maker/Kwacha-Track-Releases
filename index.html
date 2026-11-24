@@ -234,7 +234,7 @@ html,body{overscroll-behavior-y:contain}
     let type = null;
     if (/withdr|cash[\s-]?out/i.test(t)) type = 'withdraw';
     else if (/receiv|deposit|cash[\s-]?in|credited|you have got/i.test(t)) type = 'received';
-    else if (/\bsent\b|\bsend\b|transferred|\bpaid\b|payment|purchase|bought|airtime|bill/i.test(t)) type = 'sent';
+    else if (/\bsent\b|\bsend\b|transferred|\bpaid\b|payment|purchase|bought|airtime|bill|debited/i.test(t)) type = 'sent';
     if (!type) return null;
     const fee = t.match(new RegExp('fee[:\\s]*' + AMT, 'i'));
     const bal = t.match(new RegExp('bal(?:ance)?[:\\s]*(?:is\\s*)?' + AMT, 'i'));
