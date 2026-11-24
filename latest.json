@@ -1,1 +1,1 @@
-{"versionCode":20,"versionName":"1.0","sha256":"e343f2aa2a82192a15624512d2d8775fa2debbfe1eed20a72721ab03411f8d4b","notes":"Screenshots are now allowed."}
+{"versionCode":21,"versionName":"1.0","sha256":"72cf1fa1d2bbe04c0e65ef1b0173938b4a6f277b1760a7022be15ceb8212eb85","notes":"Reversed transactions are now recorded and taken off the right totals instead of being counted twice."}

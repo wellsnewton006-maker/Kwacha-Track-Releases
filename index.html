@@ -231,8 +231,16 @@ html,body{overscroll-behavior-y:contain}
     if (!t) return null;
     const am = t.match(new RegExp(AMT, 'i'));
     if (!am) return null;
-    let type = null;
-    if (/withdr|cash[\s-]?out/i.test(t)) type = 'withdraw';
+    let type = null, rev = false;
+    // A reversal gives money back (or takes it back). It is stored as its own entry that counts against the
+    // original, so the same money is never counted twice.
+    if (/\brevers(?:al|ed|e)\b|\brefund(?:ed)?\b|credited back|money back|returned to your/i.test(t)) {
+      rev = true;
+      if (/withdr|cash[\s-]?out/i.test(t)) type = 'withdraw';
+      else if (/deducted|debited|taken back|taken from your|removed from your/i.test(t) && !/credited back|returned to your|refund/i.test(t)) type = 'received';
+      else type = 'sent';
+    }
+    else if (/withdr|cash[\s-]?out/i.test(t)) type = 'withdraw';
     else if (/receiv|deposit|cash[\s-]?in|credited|you have got/i.test(t)) type = 'received';
     else if (/\bsent\b|\bsend\b|transferred|\bpaid\b|payment|purchase|bought|airtime|bill|debited/i.test(t)) type = 'sent';
     if (!type) return null;
@@ -245,7 +253,7 @@ html,body{overscroll-behavior-y:contain}
       if (a) party = 'Agent ' + a[1].trim();
     }
     if (!party) {
-      const p = t.match(/\b(?:from|to)\s+([A-Za-z][A-Za-z0-9 .'&-]{1,30}?)(?=\s+\d{9,}|\s*[.,(]|\s+(?:on|Txn|Trans|Ref|Fee|Bal|New)\b|$)/i);
+      const p = t.match(/\b(?:from|to)\s+([A-Za-z][A-Za-z0-9 .'&-]{1,30}?)(?=\s+\d{9,}|\s*[.,(]|\s+(?:on|Txn|Trans|Ref|Fee|Bal|New|has|was|is|have|been|successful)\b|$)/i);
       if (p) party = p[1].trim();
     }
     let ts = Date.now();
@@ -256,8 +264,12 @@ html,body{overscroll-behavior-y:contain}
       const dt = new Date(y, +d[2] - 1, +d[1], d[4] !== undefined ? +d[4] : now.getHours(), d[5] !== undefined ? +d[5] : now.getMinutes());
       if (!isNaN(dt) && dt.getTime() <= Date.now() + 864e5) ts = dt.getTime();
     }
-    return { type, amount: num(am[1]), fee: fee ? num(fee[1]) : 0, balance: bal ? num(bal[1]) : null,
-             ref: ref ? ref[1].toUpperCase() : '', party: party || 'Unknown', ts, source: 'sms' };
+    if (rev && /^(?:you|your(?: account| balance| wallet)?|me|my account)$/i.test(party)) party = ''; // "returned to your account" names nobody
+    const refv = ref ? ref[1].toUpperCase() : '';
+    const out = { type, amount: num(am[1]), fee: fee ? num(fee[1]) : 0, balance: bal ? num(bal[1]) : null,
+             ref: rev && refv ? 'REV-' + refv : refv, party: party || 'Unknown', ts, source: 'sms' };
+    if (rev) { out.rev = true; out.orig = refv; }
+    return out;
   }
   function splitMessages(text) {
     const blocks = text.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
@@ -341,7 +353,7 @@ html,body{overscroll-behavior-y:contain}
     for (let i = 0; i < ops.length; i += 200) {
       const writes = ops.slice(i, i + 200).map(op => {
         const t = op.tx;
-        const o = t ? { id: op.id, type: t.type, amount: Number(t.amount), fee: Number(t.fee || 0), balance: t.balance == null ? null : Number(t.balance), party: t.party || 'Unknown', ref: t.ref || '', ts: Number(t.ts), source: t.source || '' }
+        const o = t ? { id: op.id, type: t.type, amount: Number(t.amount), fee: Number(t.fee || 0), balance: t.balance == null ? null : Number(t.balance), party: t.party || 'Unknown', ref: t.ref || '', ts: Number(t.ts), source: t.source || '', rev: !!t.rev, orig: t.orig || '' }
           : { id: op.id, deleted: true, ts: Date.now() };
         const fields = {}; for (const k in o) fields[k] = fsEnc(o[k]);
         return { update: { name: 'projects/' + FB.projectId + '/databases/(default)/documents/users/' + fb.uid + '/txns/' + op.id, fields } };
@@ -350,8 +362,8 @@ html,body{overscroll-behavior-y:contain}
       if (!r.ok) throw new Error('commit ' + r.status);
     }
   }
-  const sig = t => JSON.stringify([t.type, Number(t.amount), Number(t.fee || 0), t.balance == null ? null : Number(t.balance), t.party || 'Unknown', t.ref || '', Number(t.ts), t.source || '']);
-  const cleanTx = r => ({ id: r.id, type: r.type, amount: Number(r.amount), fee: Number(r.fee || 0), balance: r.balance == null ? null : Number(r.balance), party: r.party || 'Unknown', ref: r.ref || '', ts: Number(r.ts), source: r.source || '' });
+  const sig = t => JSON.stringify([t.type, Number(t.amount), Number(t.fee || 0), t.balance == null ? null : Number(t.balance), t.party || 'Unknown', t.ref || '', Number(t.ts), t.source || '', !!t.rev, t.orig || '']);
+  const cleanTx = r => ({ id: r.id, type: r.type, amount: Number(r.amount), fee: Number(r.fee || 0), balance: r.balance == null ? null : Number(r.balance), party: r.party || 'Unknown', ref: r.ref || '', ts: Number(r.ts), source: r.source || '', rev: r.rev === true, orig: r.orig || '' });
   const validRemote = r => r && TYPES[r.type] && Number(r.amount) >= 0 && Number(r.ts) > 0;
   /* Merge rules, per transaction: a deletion marker removes it here; something new online is added here;
      something new here is sent online; something removed here gets a deletion marker; if only one side
@@ -381,7 +393,7 @@ html,body{overscroll-behavior-y:contain}
           continue;
         }
         if (S.ids[id] !== undefined) { ops.push({ id, tx: null }); after.push(() => { S.ids[id] = 'x'; }); continue; }
-        const dup = d.txns.some(x => r.ref ? x.ref === r.ref : (x.type === r.type && x.amount === Number(r.amount) && x.party === r.party && Math.abs(x.ts - Number(r.ts)) < 60e3));
+        const dup = d.txns.some(x => !!x.rev === (r.rev === true) && (r.ref ? x.ref === r.ref : (x.type === r.type && x.amount === Number(r.amount) && x.party === r.party && Math.abs(x.ts - Number(r.ts)) < 60e3)));
         if (dup) { S.alias[id] = 1; continue; }
         d.txns.push(cleanTx(r)); S.ids[id] = rs; changed = true;
       }
@@ -535,12 +547,15 @@ html,body{overscroll-behavior-y:contain}
     ];
   }
 
+  const isReversed = x => !x.rev && !!x.ref && state.data.txns.some(r => r.rev && r.orig === x.ref);
+
   /* ---------- totals ---------- */
   function totals(list) {
     const t = { received: 0, sent: 0, withdraw: 0, fees: 0, n: { received: 0, sent: 0, withdraw: 0 } };
     for (const x of list) {
-      t.n[x.type]++;
-      if (x.type === 'received') t.received += x.amount; else { t[x.type] += x.amount; t.fees += x.fee || 0; }
+      const sg = x.rev ? -1 : 1; // a reversal takes its amount back off the same total
+      t.n[x.type] += sg;
+      if (x.type === 'received') t.received += sg * x.amount; else { t[x.type] += sg * x.amount; t.fees += sg * (x.fee || 0); }
     }
     t.used = t.sent + t.withdraw + t.fees;
     return t;
@@ -580,11 +595,21 @@ html,body{overscroll-behavior-y:contain}
   /* ---------- adding transactions ---------- */
   function addTxn(p, notify) {
     const d = state.data;
-    const dup = d.txns.some(x => p.ref ? x.ref === p.ref : (x.type === p.type && x.amount === p.amount && x.party === p.party && Math.abs(x.ts - p.ts) < 60e3));
+    const dup = d.txns.some(x => !!x.rev === !!p.rev && (p.ref ? x.ref === p.ref : (x.type === p.type && x.amount === p.amount && x.party === p.party && Math.abs(x.ts - p.ts) < 60e3)));
     if (dup) return false;
+    if (p.rev) {
+      const o = p.orig && d.txns.find(x => !x.rev && x.ref === p.orig);
+      if (o) { p.type = o.type; p.party = o.party; }
+      if (p.balance == null) { // no balance in the message: work it out from the last known one
+        const b = d.txns.find(x => !x.sample && x.balance != null && x.ts <= p.ts);
+        if (b) p.balance = Math.max(0, b.balance + (p.type === 'received' ? -p.amount : p.amount + (p.fee || 0)));
+      }
+    }
     d.txns.push({ id: rid(), ...p });
     d.txns.sort((a, b) => b.ts - a.ts);
-    if (notify) {
+    if (notify && p.rev) {
+      pushNotif('Reversed ' + money(p.amount), p.type === 'received' ? 'Taken back from your balance.' : 'Returned to your balance.');
+    } else if (notify) {
       const prep = p.type === 'received' ? ' from ' : ' to ';
       const who = p.party === 'Unknown' ? '' : (p.type === 'withdraw' ? ' at ' : prep) + p.party;
       pushNotif(TYPES[p.type].short + ' ' + money(p.amount), who.trim() ? who.trim() + '.' : '.');
@@ -597,6 +622,12 @@ html,body{overscroll-behavior-y:contain}
       const p = parseSMS(c);
       if (!p) { bad++; continue; }
       addTxn(p, true) ? added++ : dup++;
+    }
+    // A reversal that came in before its original: take the original's type and name now that both are here.
+    for (const r of state.data.txns) {
+      if (!r.rev || !r.orig) continue;
+      const o = state.data.txns.find(x => !x.rev && x.ref === r.orig);
+      if (o) { r.type = o.type; r.party = o.party; }
     }
     if (added) { checkBudget(); save(); renderApp(); updateBadge(); }
     return { added, dup, bad };
@@ -762,7 +793,7 @@ html,body{overscroll-behavior-y:contain}
   function backupText() {
     const list = state.data.txns.filter(x => !x.sample).map(x => ({
       id: x.id, type: x.type, amount: x.amount, fee: x.fee || 0, balance: x.balance == null ? null : x.balance,
-      party: x.party || 'Unknown', ref: x.ref || '', ts: x.ts, source: x.source || ''
+      party: x.party || 'Unknown', ref: x.ref || '', ts: x.ts, source: x.source || '', rev: !!x.rev, orig: x.orig || ''
     }));
     return 'KWACHATRACK1 ' + JSON.stringify(list);
   }
@@ -778,7 +809,8 @@ html,body{overscroll-behavior-y:contain}
       const bal = x.balance == null || !isFinite(Number(x.balance)) ? null : Number(x.balance);
       const p = { type: x.type, amount: Number(x.amount), fee: Number(x.fee) > 0 ? Number(x.fee) : 0, balance: bal,
         party: String(x.party || 'Unknown').slice(0, 60), ts: Number(x.ts), source: String(x.source || 'app').slice(0, 20) };
-      if (x.ref) p.ref = String(x.ref).slice(0, 40);
+      if (x.ref) p.ref = String(x.ref).slice(0, 48);
+      if (x.rev === true) { p.rev = true; p.orig = String(x.orig || '').slice(0, 40); }
       if (x.id) p.id = String(x.id).slice(0, 40);
       if (addTxn(p, false)) added++;
     }
@@ -867,9 +899,9 @@ html,body{overscroll-behavior-y:contain}
         </div>
         ${shown.length ? `<ul class="list">${shown.map(x => `
           <li class="tx">
-            <span class="pill ${TYPES[x.type].cls}">${TYPES[x.type].label}</span>
-            <div style="min-width:0"><p class="who">${esc(x.party)}</p><p class="meta">${fmtDate(x.ts)}${x.fee ? ' · fee ' + money(x.fee) : ''}${x.sample ? ' · sample' : ''}</p></div>
-            <p class="amt tn ${x.type === 'received' ? 'in' : ''}">${x.type === 'received' ? '+' : '−'}${money(x.amount)}</p>
+            <span class="pill ${TYPES[x.type].cls}">${x.rev ? 'Reversed ' + TYPES[x.type].label.toLowerCase() : TYPES[x.type].label}</span>
+            <div style="min-width:0"><p class="who">${esc(x.party)}</p><p class="meta">${fmtDate(x.ts)}${x.fee ? ' · fee ' + (x.rev ? '−' : '') + money(x.fee) : ''}${isReversed(x) ? ' · reversed' : ''}${x.sample ? ' · sample' : ''}</p></div>
+            <p class="amt tn ${(x.type === 'received') !== !!x.rev ? 'in' : ''}">${(x.type === 'received') !== !!x.rev ? '+' : '−'}${money(x.amount)}</p>
             <button class="x" type="button" data-del="${x.id}" aria-label="Remove this transaction">×</button>
           </li>`).join('')}</ul>`
           : `<p class="empty">No transactions here yet. Tap “Add messages or a transaction” to start.</p>`}
