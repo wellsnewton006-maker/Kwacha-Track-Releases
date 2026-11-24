@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Get Kwacha Track</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F1F4F0; --surface:#FFFFFF; --ink:#12201A; --muted:#5B6B63; --line:#DAE2DB; --chip:#E6ECE6;
+  --accent:#0A6B4D; --accent-ink:#FFFFFF; --focus:#2A59AA;
+  --display:"Bricolage Grotesque","Inter",system-ui,sans-serif; --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#0D1410; --surface:#151F19; --ink:#E6EEE8; --muted:#95A69B; --line:#263329; --chip:#1D2922;
+    --accent:#3FC38F; --accent-ink:#06130C; --focus:#8DB4F0; color-scheme:dark;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding:24px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
+main{max-width:460px;margin:0 auto}
+h1{font-family:var(--display);font-size:1.9rem;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-family:var(--display);font-size:1.15rem;margin:0 0 6px}
+.lead{color:var(--muted);margin:0 0 18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 0 14px}
+.btn{display:block;width:100%;text-align:center;text-decoration:none;font:600 16px var(--body);border-radius:12px;padding:14px 16px;margin-top:12px;
+  background:var(--accent);color:var(--accent-ink);border:0}
+.btn.alt{background:var(--chip);color:var(--ink)}
+.btn:focus-visible,a:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+ol{margin:8px 0 0;padding-left:20px;color:var(--muted)}
+li{margin:4px 0}
+.small{font-size:13px;color:var(--muted)}
+a{color:var(--accent)}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <h1>Kwacha Track</h1>
+  <p class="lead">Your mobile money spending in one place: withdrawn, received, sent and total used.</p>
+
+  <!-- Android 8 or newer: offer the app, with the web version as the other choice -->
+  <section id="android" hidden>
+    <div class="card">
+      <h2>Install the Android app</h2>
+      <p class="small" style="margin:0">The app reads your Airtel, MTN and Zamtel messages by itself and keeps the same figures as the web version.</p>
+      <a class="btn" id="apk" href="KwachaTrack.apk" download>Download the app</a>
+      <ol>
+        <li>Open the downloaded file. If Android asks, allow installs from your browser.</li>
+        <li>If Play Protect warns you, tap <b>More details</b>, then <b>Install anyway</b>.</li>
+        <li>Open the app, create your account and allow SMS access.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>Can't install it, or it won't work?</h2>
+      <p class="small" style="margin:0">The web version works on any phone or computer. You add your messages by pasting them, and your figures match the app when you use the same phone number and PIN.</p>
+      <a class="btn alt" href="./">Use the web version instead</a>
+    </div>
+  </section>
+
+  <!-- Any other device: the app cannot run here, so go to the web version -->
+  <section id="other" hidden>
+    <div class="card">
+      <h2>Opening the web version…</h2>
+      <p class="small" style="margin:0" id="why">The Android app cannot run on this device, but the web version works here.</p>
+      <a class="btn" href="./">Open the web version now</a>
+      <p class="small" style="margin:12px 0 0">On an Android phone? <a href="get.html?android">Show the app download</a>.</p>
+    </div>
+  </section>
+
+  <footer>Developed by Isaac Malembeka</footer>
+</main>
+<script>
+(function () {
+  var ua = navigator.userAgent || '';
+  var m = ua.match(/Android\s+(\d+)/i);
+  var forceApp = /[?&]android\b/.test(location.search);
+  var forceWeb = /[?&]web\b/.test(location.search);
+  var ok = !!m && parseInt(m[1], 10) >= 8;
+  if (forceWeb) { location.replace('./'); return; }
+  if (ok || forceApp) { document.getElementById('android').hidden = false; return; }
+  var why = document.getElementById('why');
+  if (/iPhone|iPad|iPod/i.test(ua)) why.textContent = 'iPhones and iPads cannot install the Android app, and they do not let any app read text messages. The web version works here.';
+  else if (m) why.textContent = 'This Android is too old for the app (it needs Android 8 or newer). The web version works here.';
+  else why.textContent = 'The Android app only runs on Android phones. The web version works on this device.';
+  document.getElementById('other').hidden = false;
+  setTimeout(function () { location.replace('./'); }, 3500);
+})();
+</script>
+</body>
+</html>

@@ -1,1 +1,1 @@
-{"versionCode":21,"versionName":"1.0","sha256":"72cf1fa1d2bbe04c0e65ef1b0173938b4a6f277b1760a7022be15ceb8212eb85","notes":"Reversed transactions are now recorded and taken off the right totals instead of being counted twice."}
+{"versionCode":22,"versionName":"1.0","sha256":"1650a55862309a7354d6ac140f368d4d672114408e119be8db6af7c9ca9b8f24","notes":"If the app can't be used, the login screen and the SMS card now offer the web version."}
