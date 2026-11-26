@@ -1,1 +1,1 @@
-{"versionCode":22,"versionName":"1.0","sha256":"1650a55862309a7354d6ac140f368d4d672114408e119be8db6af7c9ca9b8f24","notes":"If the app can't be used, the login screen and the SMS card now offer the web version."}
+{"versionCode":23,"versionName":"1.0","sha256":"bdaad4e8e12a20cabc56e34a88cb5887c87ec4ac16e58cd17c5d374b826cf49f","notes":"Airtel Money texts like 'Money received ... from <number> NAME' are now read, and 'Your Current Balance is ZMW ...' messages update your balance."}

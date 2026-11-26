@@ -1,5 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Kwacha Track</title><style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
 
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
@@ -231,6 +233,11 @@ html,body{overscroll-behavior-y:contain}
     if (!t) return null;
     const am = t.match(new RegExp(AMT, 'i'));
     if (!am) return null;
+    // "Your Current Balance is ZMW 20.65": no payment, only a new balance. (The first amount is the balance itself.)
+    if (/\bbal(?:ance)?\b/i.test(t.slice(Math.max(0, am.index - 14), am.index)) && !/\b(?:receiv|deposit|cash[\s-]?in|credited|withdr|cash[\s-]?out|sent|send|transferred|paid|payment|purchase|bought|airtime|bill|debited|revers|refund)/i.test(t)) {
+      const ts0 = Date.now();
+      return { type: 'balance', amount: 0, fee: 0, balance: num(am[1]), ref: 'BAL-' + Math.floor(ts0 / 60000) + '-' + Math.round(num(am[1]) * 100), party: 'Balance', ts: ts0, source: 'sms' };
+    }
     let type = null, rev = false;
     // A reversal gives money back (or takes it back). It is stored as its own entry that counts against the
     // original, so the same money is never counted twice.
@@ -246,11 +253,15 @@ html,body{overscroll-behavior-y:contain}
     if (!type) return null;
     const fee = t.match(new RegExp('fee[:\\s]*' + AMT, 'i'));
     const bal = t.match(new RegExp('bal(?:ance)?[:\\s]*(?:is\\s*)?' + AMT, 'i'));
-    const ref = t.match(/\b(?:txn|tid|trans(?:action)?|ref(?:erence)?)\s*(?:id|no|#)?[:\s.]*(?=[A-Z0-9]*\d)([A-Z0-9]{6,})/i);
+    const ref = t.match(/\b(?:txn|tid|trans(?:action)?|ref(?:erence)?)\s*(?:id|no|#)?[:\s.]*(?=[A-Z0-9.]*\d)([A-Z0-9]{6,}(?:\.[A-Z0-9]+)*)/i);
     let party = '';
     if (type === 'withdraw') {
       const a = t.match(/agent\s+([A-Za-z0-9][A-Za-z0-9 .'-]{1,28}?)(?=\s*(?:[.,]|Fee|Txn|Trans|Ref|Bal|New)\b|\s*[.,]|$)/i);
       if (a) party = 'Agent ' + a[1].trim();
+    }
+    if (!party) {
+      const pn = t.match(/\b(?:from|to)\s+\+?\d{6,13}\s+([A-Za-z][A-Za-z .'&-]{1,40}?)(?=\s*[.,(]|\s+(?:Dial|on|Txn|Trans|TID|Ref|Fee|Bal|New)\b|$)/i);
+      if (pn) party = pn[1].trim();
     }
     if (!party) {
       const p = t.match(/\b(?:from|to)\s+([A-Za-z][A-Za-z0-9 .'&-]{1,30}?)(?=\s+\d{9,}|\s*[.,(]|\s+(?:on|Txn|Trans|Ref|Fee|Bal|New|has|was|is|have|been|successful)\b|$)/i);
@@ -364,7 +375,7 @@ html,body{overscroll-behavior-y:contain}
   }
   const sig = t => JSON.stringify([t.type, Number(t.amount), Number(t.fee || 0), t.balance == null ? null : Number(t.balance), t.party || 'Unknown', t.ref || '', Number(t.ts), t.source || '', !!t.rev, t.orig || '']);
   const cleanTx = r => ({ id: r.id, type: r.type, amount: Number(r.amount), fee: Number(r.fee || 0), balance: r.balance == null ? null : Number(r.balance), party: r.party || 'Unknown', ref: r.ref || '', ts: Number(r.ts), source: r.source || '', rev: r.rev === true, orig: r.orig || '' });
-  const validRemote = r => r && TYPES[r.type] && Number(r.amount) >= 0 && Number(r.ts) > 0;
+  const validRemote = r => r && (TYPES[r.type] || r.type === 'balance') && Number(r.amount) >= 0 && Number(r.ts) > 0;
   /* Merge rules, per transaction: a deletion marker removes it here; something new online is added here;
      something new here is sent online; something removed here gets a deletion marker; if only one side
      changed a transaction, that change wins (if both did, this device wins). */
@@ -553,6 +564,7 @@ html,body{overscroll-behavior-y:contain}
   function totals(list) {
     const t = { received: 0, sent: 0, withdraw: 0, fees: 0, n: { received: 0, sent: 0, withdraw: 0 } };
     for (const x of list) {
+      if (x.type === 'balance') continue;
       const sg = x.rev ? -1 : 1; // a reversal takes its amount back off the same total
       t.n[x.type] += sg;
       if (x.type === 'received') t.received += sg * x.amount; else { t[x.type] += sg * x.amount; t.fees += sg * (x.fee || 0); }
@@ -607,6 +619,7 @@ html,body{overscroll-behavior-y:contain}
     }
     d.txns.push({ id: rid(), ...p });
     d.txns.sort((a, b) => b.ts - a.ts);
+    if (p.type === 'balance') return true; // a balance-only message: no alert, no totals
     if (notify && p.rev) {
       pushNotif('Reversed ' + money(p.amount), p.type === 'received' ? 'Taken back from your balance.' : 'Returned to your balance.');
     } else if (notify) {
@@ -804,7 +817,7 @@ html,body{overscroll-behavior-y:contain}
     if (!Array.isArray(arr)) return null;
     let added = 0;
     for (const x of arr) {
-      if (!x || !TYPES[x.type] || !(Number(x.amount) >= 0) || !isFinite(Number(x.ts)) || Number(x.ts) <= 0) continue;
+      if (!x || !(TYPES[x.type] || x.type === 'balance') || !(Number(x.amount) >= 0) || !isFinite(Number(x.ts)) || Number(x.ts) <= 0) continue;
       if (x.id && state.data.txns.some(y => y.id === x.id)) continue;
       const bal = x.balance == null || !isFinite(Number(x.balance)) ? null : Number(x.balance);
       const p = { type: x.type, amount: Number(x.amount), fee: Number(x.fee) > 0 ? Number(x.fee) : 0, balance: bal,
@@ -826,7 +839,7 @@ html,body{overscroll-behavior-y:contain}
   }
   function renderMain() {
     const d = state.data, start0 = rangeStart(state.period);
-    const inPeriod = d.txns.filter(x => x.ts >= start0);
+    const inPeriod = d.txns.filter(x => x.ts >= start0 && x.type !== 'balance');
     const t = totals(inPeriod);
     const shown = state.filter === 'all' ? inPeriod : inPeriod.filter(x => x.type === state.filter);
     const mk = monthKey(Date.now());
@@ -915,7 +928,7 @@ html,body{overscroll-behavior-y:contain}
     const w = d.txns.find(x => !x.sample && x.balance !== null && x.balance !== undefined);
     if (w && (!d.balanceKeep || w.ts >= d.balanceKeep.ts)) d.balanceKeep = { balance: w.balance, ts: w.ts };
   }
-  const inList = x => x.ts >= rangeStart(state.period) && (state.filter === 'all' || x.type === state.filter);
+  const inList = x => x.type !== 'balance' && x.ts >= rangeStart(state.period) && (state.filter === 'all' || x.type === state.filter);
   function clearOptions() {
     const d = state.data;
     const shownN = d.txns.filter(inList).length, sampleN = d.txns.filter(x => x.sample).length;
@@ -923,7 +936,7 @@ html,body{overscroll-behavior-y:contain}
     const raw = [
       ['samples', 'Sample transactions', sampleN + '', sampleN === 0],
       ['shown', 'Transactions listed above', shownN + '', shownN === 0],
-      ['all', 'All transactions', d.txns.length + '', d.txns.length === 0],
+      ['all', 'All transactions', d.txns.filter(x => x.type !== 'balance').length + '', d.txns.every(x => x.type === 'balance')],
       ['balance', 'Saved balance', hasBal ? 'saved' : 'none', !hasBal],
       ['notifs', 'Notifications', d.notifs.length + '', d.notifs.length === 0],
       ['limit', 'Monthly limit', d.budget ? money(d.budget) : 'not set', !d.budget]
@@ -931,7 +944,8 @@ html,body{overscroll-behavior-y:contain}
     return raw.map(([id, label, detail, off]) => ({ id, label, detail, off, on: !off && !!state.sel[id] }));
   }
   function doClear() {
-    const d = state.data, s = {}, before = d.txns.length;
+    const real = () => state.data.txns.filter(x => x.type !== 'balance').length;
+    const d = state.data, s = {}, before = real();
     clearOptions().forEach(o => { s[o.id] = o.on; });
     if (!s.balance) keepBalance();
     if (s.all) d.txns = [];
@@ -939,12 +953,12 @@ html,body{overscroll-behavior-y:contain}
       if (s.shown) d.txns = d.txns.filter(x => !inList(x));
       if (s.samples) d.txns = d.txns.filter(x => !x.sample);
     }
-    if (s.balance) { d.txns.forEach(x => { x.balance = null; }); d.balanceKeep = null; }
+    if (s.balance) { d.txns = d.txns.filter(x => x.type !== 'balance'); d.txns.forEach(x => { x.balance = null; }); d.balanceKeep = null; }
     if (s.notifs) d.notifs = [];
     if (s.limit) d.budget = 0;
     d.alerts = {}; state.sel = {}; state.confirm = null; save(); renderApp(); updateBadge();
     const done = [];
-    if (before !== d.txns.length) done.push((before - d.txns.length) + ' transactions');
+    if (before !== real()) done.push((before - real()) + ' transactions');
     if (s.balance) done.push('balance');
     if (s.notifs) done.push('notifications');
     if (s.limit) done.push('monthly limit');
@@ -1150,5 +1164,7 @@ html,body{overscroll-behavior-y:contain}
   cloud.init = initCloud();
 })();
 </script>
+
+</body></html>
 
 </body></html>
