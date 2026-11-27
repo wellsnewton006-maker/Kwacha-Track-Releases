@@ -404,7 +404,7 @@ html,body{overscroll-behavior-y:contain}
           continue;
         }
         if (S.ids[id] !== undefined) { ops.push({ id, tx: null }); after.push(() => { S.ids[id] = 'x'; }); continue; }
-        const dup = d.txns.some(x => !!x.rev === (r.rev === true) && (r.ref ? x.ref === r.ref : (x.type === r.type && x.amount === Number(r.amount) && x.party === r.party && Math.abs(x.ts - Number(r.ts)) < 60e3)));
+        const dup = d.txns.some(x => !!x.rev === (r.rev === true) && (r.ref && x.ref ? x.ref === r.ref : (x.type === r.type && x.amount === Number(r.amount) && x.party === r.party && Math.abs(x.ts - Number(r.ts)) < 300e3)));
         if (dup) { S.alias[id] = 1; continue; }
         d.txns.push(cleanTx(r)); S.ids[id] = rs; changed = true;
       }
@@ -607,7 +607,7 @@ html,body{overscroll-behavior-y:contain}
   /* ---------- adding transactions ---------- */
   function addTxn(p, notify) {
     const d = state.data;
-    const dup = d.txns.some(x => !!x.rev === !!p.rev && (p.ref ? x.ref === p.ref : (x.type === p.type && x.amount === p.amount && x.party === p.party && Math.abs(x.ts - p.ts) < 60e3)));
+    const dup = d.txns.some(x => !!x.rev === !!p.rev && (p.ref && x.ref ? x.ref === p.ref : (x.type === p.type && x.amount === p.amount && x.party === p.party && Math.abs(x.ts - p.ts) < 300e3)));
     if (dup) return false;
     if (p.rev) {
       const o = p.orig && d.txns.find(x => !x.rev && x.ref === p.orig);
